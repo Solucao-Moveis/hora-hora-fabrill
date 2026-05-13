@@ -81,12 +81,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Sistema de acompanhamento horário de produção para fábrica de móveis escolares. PCP define metas; líderes apontam produção em tempo real.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: "Produção Hora a Hora" },
+      { property: "og:title", content: "Produção Hora a Hora — Móveis Escolares" },
       {
         property: "og:description",
         content: "Metas, apontamento horário e dashboards de produção fabril.",
       },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Produção Hora a Hora — Móveis Escolares" },
+      { name: "description", content: "Web app for hourly production tracking in a school furniture factory, with PCP and Area Leader roles." },
+      { property: "og:description", content: "Web app for hourly production tracking in a school furniture factory, with PCP and Area Leader roles." },
+      { name: "twitter:description", content: "Web app for hourly production tracking in a school furniture factory, with PCP and Area Leader roles." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0e1705b4-38d0-420b-b2be-8994e58c5a1a/id-preview-bea18d97--54244b10-810e-47d7-92a5-2c1dff58cc93.lovable.app-1778639699865.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0e1705b4-38d0-420b-b2be-8994e58c5a1a/id-preview-bea18d97--54244b10-810e-47d7-92a5-2c1dff58cc93.lovable.app-1778639699865.png" },
     ],
     links: [
       {
