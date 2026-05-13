@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppLiderRouteImport } from './routes/_app/lider'
+import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -33,16 +34,23 @@ const AppLiderRoute = AppLiderRouteImport.update({
   path: '/lider',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPcpMetasRoute = AppPcpMetasRouteImport.update({
+  id: '/pcp/metas',
+  path: '/pcp/metas',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/lider': typeof AppLiderRoute
+  '/pcp/metas': typeof AppPcpMetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/lider': typeof AppLiderRoute
+  '/pcp/metas': typeof AppPcpMetasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +58,14 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/lider': typeof AppLiderRoute
+  '/_app/pcp/metas': typeof AppPcpMetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/lider'
+  fullPaths: '/' | '/login' | '/lider' | '/pcp/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/lider'
-  id: '__root__' | '/' | '/_app' | '/login' | '/_app/lider'
+  to: '/' | '/login' | '/lider' | '/pcp/metas'
+  id: '__root__' | '/' | '/_app' | '/login' | '/_app/lider' | '/_app/pcp/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +104,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLiderRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pcp/metas': {
+      id: '/_app/pcp/metas'
+      path: '/pcp/metas'
+      fullPath: '/pcp/metas'
+      preLoaderRoute: typeof AppPcpMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppLiderRoute: typeof AppLiderRoute
+  AppPcpMetasRoute: typeof AppPcpMetasRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppLiderRoute: AppLiderRoute,
+  AppPcpMetasRoute: AppPcpMetasRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
