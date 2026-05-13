@@ -9,38 +9,149 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppLiderRouteImport } from './routes/_app/lider'
+import { Route as AppPcpUsuariosRouteImport } from './routes/_app/pcp/usuarios'
+import { Route as AppPcpRelatoriosRouteImport } from './routes/_app/pcp/relatorios'
+import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
+import { Route as AppPcpDashboardRouteImport } from './routes/_app/pcp/dashboard'
+import { Route as AppLiderDashboardRouteImport } from './routes/_app/lider.dashboard'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppLiderRoute = AppLiderRouteImport.update({
+  id: '/lider',
+  path: '/lider',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPcpUsuariosRoute = AppPcpUsuariosRouteImport.update({
+  id: '/pcp/usuarios',
+  path: '/pcp/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPcpRelatoriosRoute = AppPcpRelatoriosRouteImport.update({
+  id: '/pcp/relatorios',
+  path: '/pcp/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPcpMetasRoute = AppPcpMetasRouteImport.update({
+  id: '/pcp/metas',
+  path: '/pcp/metas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPcpDashboardRoute = AppPcpDashboardRouteImport.update({
+  id: '/pcp/dashboard',
+  path: '/pcp/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLiderDashboardRoute = AppLiderDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppLiderRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/lider': typeof AppLiderRouteWithChildren
+  '/lider/dashboard': typeof AppLiderDashboardRoute
+  '/pcp/dashboard': typeof AppPcpDashboardRoute
+  '/pcp/metas': typeof AppPcpMetasRoute
+  '/pcp/relatorios': typeof AppPcpRelatoriosRoute
+  '/pcp/usuarios': typeof AppPcpUsuariosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/lider': typeof AppLiderRouteWithChildren
+  '/lider/dashboard': typeof AppLiderDashboardRoute
+  '/pcp/dashboard': typeof AppPcpDashboardRoute
+  '/pcp/metas': typeof AppPcpMetasRoute
+  '/pcp/relatorios': typeof AppPcpRelatoriosRoute
+  '/pcp/usuarios': typeof AppPcpUsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/lider': typeof AppLiderRouteWithChildren
+  '/_app/lider/dashboard': typeof AppLiderDashboardRoute
+  '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
+  '/_app/pcp/metas': typeof AppPcpMetasRoute
+  '/_app/pcp/relatorios': typeof AppPcpRelatoriosRoute
+  '/_app/pcp/usuarios': typeof AppPcpUsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/lider'
+    | '/lider/dashboard'
+    | '/pcp/dashboard'
+    | '/pcp/metas'
+    | '/pcp/relatorios'
+    | '/pcp/usuarios'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/lider'
+    | '/lider/dashboard'
+    | '/pcp/dashboard'
+    | '/pcp/metas'
+    | '/pcp/relatorios'
+    | '/pcp/usuarios'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/lider'
+    | '/_app/lider/dashboard'
+    | '/_app/pcp/dashboard'
+    | '/_app/pcp/metas'
+    | '/_app/pcp/relatorios'
+    | '/_app/pcp/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +159,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/lider': {
+      id: '/_app/lider'
+      path: '/lider'
+      fullPath: '/lider'
+      preLoaderRoute: typeof AppLiderRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pcp/usuarios': {
+      id: '/_app/pcp/usuarios'
+      path: '/pcp/usuarios'
+      fullPath: '/pcp/usuarios'
+      preLoaderRoute: typeof AppPcpUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pcp/relatorios': {
+      id: '/_app/pcp/relatorios'
+      path: '/pcp/relatorios'
+      fullPath: '/pcp/relatorios'
+      preLoaderRoute: typeof AppPcpRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pcp/metas': {
+      id: '/_app/pcp/metas'
+      path: '/pcp/metas'
+      fullPath: '/pcp/metas'
+      preLoaderRoute: typeof AppPcpMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pcp/dashboard': {
+      id: '/_app/pcp/dashboard'
+      path: '/pcp/dashboard'
+      fullPath: '/pcp/dashboard'
+      preLoaderRoute: typeof AppPcpDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lider/dashboard': {
+      id: '/_app/lider/dashboard'
+      path: '/dashboard'
+      fullPath: '/lider/dashboard'
+      preLoaderRoute: typeof AppLiderDashboardRouteImport
+      parentRoute: typeof AppLiderRoute
+    }
   }
 }
 
+interface AppLiderRouteChildren {
+  AppLiderDashboardRoute: typeof AppLiderDashboardRoute
+}
+
+const AppLiderRouteChildren: AppLiderRouteChildren = {
+  AppLiderDashboardRoute: AppLiderDashboardRoute,
+}
+
+const AppLiderRouteWithChildren = AppLiderRoute._addFileChildren(
+  AppLiderRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppLiderRoute: typeof AppLiderRouteWithChildren
+  AppPcpDashboardRoute: typeof AppPcpDashboardRoute
+  AppPcpMetasRoute: typeof AppPcpMetasRoute
+  AppPcpRelatoriosRoute: typeof AppPcpRelatoriosRoute
+  AppPcpUsuariosRoute: typeof AppPcpUsuariosRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppLiderRoute: AppLiderRouteWithChildren,
+  AppPcpDashboardRoute: AppPcpDashboardRoute,
+  AppPcpMetasRoute: AppPcpMetasRoute,
+  AppPcpRelatoriosRoute: AppPcpRelatoriosRoute,
+  AppPcpUsuariosRoute: AppPcpUsuariosRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
