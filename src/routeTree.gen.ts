@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppLiderRouteImport } from './routes/_app/lider'
 import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
+import { Route as AppPcpDashboardRouteImport } from './routes/_app/pcp/dashboard'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -39,17 +40,24 @@ const AppPcpMetasRoute = AppPcpMetasRouteImport.update({
   path: '/pcp/metas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPcpDashboardRoute = AppPcpDashboardRouteImport.update({
+  id: '/pcp/dashboard',
+  path: '/pcp/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/lider': typeof AppLiderRoute
+  '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/lider': typeof AppLiderRoute
+  '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
 }
 export interface FileRoutesById {
@@ -58,14 +66,22 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/lider': typeof AppLiderRoute
+  '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
   '/_app/pcp/metas': typeof AppPcpMetasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/lider' | '/pcp/metas'
+  fullPaths: '/' | '/login' | '/lider' | '/pcp/dashboard' | '/pcp/metas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/lider' | '/pcp/metas'
-  id: '__root__' | '/' | '/_app' | '/login' | '/_app/lider' | '/_app/pcp/metas'
+  to: '/' | '/login' | '/lider' | '/pcp/dashboard' | '/pcp/metas'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/lider'
+    | '/_app/pcp/dashboard'
+    | '/_app/pcp/metas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -111,16 +127,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPcpMetasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pcp/dashboard': {
+      id: '/_app/pcp/dashboard'
+      path: '/pcp/dashboard'
+      fullPath: '/pcp/dashboard'
+      preLoaderRoute: typeof AppPcpDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppLiderRoute: typeof AppLiderRoute
+  AppPcpDashboardRoute: typeof AppPcpDashboardRoute
   AppPcpMetasRoute: typeof AppPcpMetasRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppLiderRoute: AppLiderRoute,
+  AppPcpDashboardRoute: AppPcpDashboardRoute,
   AppPcpMetasRoute: AppPcpMetasRoute,
 }
 
@@ -134,3 +159,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
