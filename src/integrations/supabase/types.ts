@@ -14,16 +14,256 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      areas: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      machine_operators: {
+        Row: {
+          id: string
+          log_date: string
+          machine_id: string
+          operator_name: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          log_date: string
+          machine_id: string
+          operator_name: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          log_date?: string
+          machine_id?: string
+          operator_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machine_operators_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      machines: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "machines_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_entries: {
+        Row: {
+          created_by: string | null
+          entry_date: string
+          hour_slot: number
+          id: string
+          machine_id: string
+          observation: string | null
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          created_by?: string | null
+          entry_date: string
+          hour_slot: number
+          id?: string
+          machine_id: string
+          observation?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          created_by?: string | null
+          entry_date?: string
+          hour_slot?: number
+          id?: string
+          machine_id?: string
+          observation?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_entries_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_goals: {
+        Row: {
+          created_by: string | null
+          goal: number
+          goal_date: string
+          id: string
+          machine_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_by?: string | null
+          goal: number
+          goal_date: string
+          id?: string
+          machine_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_by?: string | null
+          goal?: number
+          goal_date?: string
+          id?: string
+          machine_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_goals_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      user_areas: {
+        Row: {
+          area_id: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_areas_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_pcp: { Args: { _user_id: string }; Returns: boolean }
+      user_can_access_area: {
+        Args: { _area_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_can_access_machine: {
+        Args: { _machine_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "pcp" | "lider"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +390,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["pcp", "lider"],
+    },
   },
 } as const
