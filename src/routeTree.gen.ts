@@ -17,6 +17,7 @@ import { Route as AppPcpUsuariosRouteImport } from './routes/_app/pcp/usuarios'
 import { Route as AppPcpRelatoriosRouteImport } from './routes/_app/pcp/relatorios'
 import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
 import { Route as AppPcpDashboardRouteImport } from './routes/_app/pcp/dashboard'
+import { Route as AppLiderDashboardRouteImport } from './routes/_app/lider.dashboard'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -57,11 +58,17 @@ const AppPcpDashboardRoute = AppPcpDashboardRouteImport.update({
   path: '/pcp/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLiderDashboardRoute = AppLiderDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppLiderRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/lider': typeof AppLiderRoute
+  '/lider': typeof AppLiderRouteWithChildren
+  '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
@@ -70,7 +77,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/lider': typeof AppLiderRoute
+  '/lider': typeof AppLiderRouteWithChildren
+  '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
@@ -81,7 +89,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/lider': typeof AppLiderRoute
+  '/_app/lider': typeof AppLiderRouteWithChildren
+  '/_app/lider/dashboard': typeof AppLiderDashboardRoute
   '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
   '/_app/pcp/metas': typeof AppPcpMetasRoute
   '/_app/pcp/relatorios': typeof AppPcpRelatoriosRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/lider'
+    | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/metas'
     | '/pcp/relatorios'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/lider'
+    | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/metas'
     | '/pcp/relatorios'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/lider'
+    | '/_app/lider/dashboard'
     | '/_app/pcp/dashboard'
     | '/_app/pcp/metas'
     | '/_app/pcp/relatorios'
@@ -182,11 +194,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPcpDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/lider/dashboard': {
+      id: '/_app/lider/dashboard'
+      path: '/dashboard'
+      fullPath: '/lider/dashboard'
+      preLoaderRoute: typeof AppLiderDashboardRouteImport
+      parentRoute: typeof AppLiderRoute
+    }
   }
 }
 
+interface AppLiderRouteChildren {
+  AppLiderDashboardRoute: typeof AppLiderDashboardRoute
+}
+
+const AppLiderRouteChildren: AppLiderRouteChildren = {
+  AppLiderDashboardRoute: AppLiderDashboardRoute,
+}
+
+const AppLiderRouteWithChildren = AppLiderRoute._addFileChildren(
+  AppLiderRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppLiderRoute: typeof AppLiderRoute
+  AppLiderRoute: typeof AppLiderRouteWithChildren
   AppPcpDashboardRoute: typeof AppPcpDashboardRoute
   AppPcpMetasRoute: typeof AppPcpMetasRoute
   AppPcpRelatoriosRoute: typeof AppPcpRelatoriosRoute
@@ -194,7 +225,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppLiderRoute: AppLiderRoute,
+  AppLiderRoute: AppLiderRouteWithChildren,
   AppPcpDashboardRoute: AppPcpDashboardRoute,
   AppPcpMetasRoute: AppPcpMetasRoute,
   AppPcpRelatoriosRoute: AppPcpRelatoriosRoute,
@@ -211,3 +242,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
