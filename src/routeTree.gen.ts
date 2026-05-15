@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppLiderRouteImport } from './routes/_app/lider'
+import { Route as AppLiderIndexRouteImport } from './routes/_app/lider.index'
 import { Route as AppPcpUsuariosRouteImport } from './routes/_app/pcp/usuarios'
 import { Route as AppPcpRelatoriosRouteImport } from './routes/_app/pcp/relatorios'
 import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
@@ -33,9 +33,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppLiderRoute = AppLiderRouteImport.update({
-  id: '/lider',
-  path: '/lider',
+const AppLiderIndexRoute = AppLiderIndexRouteImport.update({
+  id: '/lider/',
+  path: '/lider/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPcpUsuariosRoute = AppPcpUsuariosRouteImport.update({
@@ -59,75 +59,75 @@ const AppPcpDashboardRoute = AppPcpDashboardRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const AppLiderDashboardRoute = AppLiderDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppLiderRoute,
+  id: '/lider/dashboard',
+  path: '/lider/dashboard',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/lider': typeof AppLiderRouteWithChildren
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
   '/pcp/usuarios': typeof AppPcpUsuariosRoute
+  '/lider/': typeof AppLiderIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/lider': typeof AppLiderRouteWithChildren
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
   '/pcp/usuarios': typeof AppPcpUsuariosRoute
+  '/lider': typeof AppLiderIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/lider': typeof AppLiderRouteWithChildren
   '/_app/lider/dashboard': typeof AppLiderDashboardRoute
   '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
   '/_app/pcp/metas': typeof AppPcpMetasRoute
   '/_app/pcp/relatorios': typeof AppPcpRelatoriosRoute
   '/_app/pcp/usuarios': typeof AppPcpUsuariosRoute
+  '/_app/lider/': typeof AppLiderIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
-    | '/lider'
     | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/metas'
     | '/pcp/relatorios'
     | '/pcp/usuarios'
+    | '/lider/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
-    | '/lider'
     | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/metas'
     | '/pcp/relatorios'
     | '/pcp/usuarios'
+    | '/lider'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
-    | '/_app/lider'
     | '/_app/lider/dashboard'
     | '/_app/pcp/dashboard'
     | '/_app/pcp/metas'
     | '/_app/pcp/relatorios'
     | '/_app/pcp/usuarios'
+    | '/_app/lider/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,11 +159,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/lider': {
-      id: '/_app/lider'
+    '/_app/lider/': {
+      id: '/_app/lider/'
       path: '/lider'
-      fullPath: '/lider'
-      preLoaderRoute: typeof AppLiderRouteImport
+      fullPath: '/lider/'
+      preLoaderRoute: typeof AppLiderIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pcp/usuarios': {
@@ -196,40 +196,30 @@ declare module '@tanstack/react-router' {
     }
     '/_app/lider/dashboard': {
       id: '/_app/lider/dashboard'
-      path: '/dashboard'
+      path: '/lider/dashboard'
       fullPath: '/lider/dashboard'
       preLoaderRoute: typeof AppLiderDashboardRouteImport
-      parentRoute: typeof AppLiderRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
 
-interface AppLiderRouteChildren {
-  AppLiderDashboardRoute: typeof AppLiderDashboardRoute
-}
-
-const AppLiderRouteChildren: AppLiderRouteChildren = {
-  AppLiderDashboardRoute: AppLiderDashboardRoute,
-}
-
-const AppLiderRouteWithChildren = AppLiderRoute._addFileChildren(
-  AppLiderRouteChildren,
-)
-
 interface AppRouteChildren {
-  AppLiderRoute: typeof AppLiderRouteWithChildren
+  AppLiderDashboardRoute: typeof AppLiderDashboardRoute
   AppPcpDashboardRoute: typeof AppPcpDashboardRoute
   AppPcpMetasRoute: typeof AppPcpMetasRoute
   AppPcpRelatoriosRoute: typeof AppPcpRelatoriosRoute
   AppPcpUsuariosRoute: typeof AppPcpUsuariosRoute
+  AppLiderIndexRoute: typeof AppLiderIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppLiderRoute: AppLiderRouteWithChildren,
+  AppLiderDashboardRoute: AppLiderDashboardRoute,
   AppPcpDashboardRoute: AppPcpDashboardRoute,
   AppPcpMetasRoute: AppPcpMetasRoute,
   AppPcpRelatoriosRoute: AppPcpRelatoriosRoute,
   AppPcpUsuariosRoute: AppPcpUsuariosRoute,
+  AppLiderIndexRoute: AppLiderIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -242,3 +232,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
