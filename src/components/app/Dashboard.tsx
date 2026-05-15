@@ -264,6 +264,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
             areas={visibleAreas}
             entries={entries}
             goals={goals}
+            operators={operators}
           />
         </CardContent>
       </Card>
@@ -352,11 +353,13 @@ function Heatmap({
   areas,
   entries,
   goals,
+  operators,
 }: {
   machines: Machine[];
   areas: Area[];
   entries: { machine_id: string; hour_slot: number; quantity: number }[];
   goals: { machine_id: string; goal: number }[];
+  operators: { machine_id: string; operator_name: string }[];
 }) {
   if (machines.length === 0) {
     return <div className="text-sm text-muted-foreground">Selecione filtros para visualizar.</div>;
@@ -388,9 +391,15 @@ function Heatmap({
                 {ams.map((m) => {
                   const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
                   const expectedPerHour = goal / TIME_SLOTS.length;
+                  const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
                   return (
                     <tr key={m.id} className="border-t">
-                      <td className="sticky left-0 bg-card px-2 py-1 font-medium">{m.name}</td>
+                      <td className="sticky left-0 bg-card px-2 py-1 font-medium">
+                        <div>{m.name}</div>
+                        <div className="text-[10px] font-normal text-muted-foreground">
+                          {operator ? `Op.: ${operator}` : "Sem operador"}
+                        </div>
+                      </td>
                       {TIME_SLOTS.map((s) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         if (!e) {
