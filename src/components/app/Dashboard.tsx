@@ -375,6 +375,10 @@ function Heatmap({
                 {s.start}
               </th>
             ))}
+            <th className="px-2 py-1 text-center font-semibold">Meta/h</th>
+            <th className="px-2 py-1 text-center font-semibold">Meta total</th>
+            <th className="px-2 py-1 text-center font-semibold">Realizado</th>
+            <th className="px-2 py-1 text-center font-semibold">% Meta</th>
           </tr>
         </thead>
         <tbody>
@@ -384,7 +388,7 @@ function Heatmap({
             return (
               <>
                 <tr key={`area-${area.id}`}>
-                  <td colSpan={TIME_SLOTS.length + 1} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <td colSpan={TIME_SLOTS.length + 5} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {area.name}
                   </td>
                 </tr>
@@ -392,6 +396,10 @@ function Heatmap({
                   const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
                   const expectedPerHour = goal / TIME_SLOTS.length;
                   const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
+                  const realized = entries
+                    .filter((x) => x.machine_id === m.id)
+                    .reduce((s, x) => s + x.quantity, 0);
+                  const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
                   return (
                     <tr key={m.id} className="border-t">
                       <td className="sticky left-0 bg-card px-2 py-1 font-medium">
@@ -403,7 +411,16 @@ function Heatmap({
                       {TIME_SLOTS.map((s) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         if (!e) {
-                          return <td key={s.index} className="px-1 py-1 text-center"><Cell2 tone="empty" /></td>;
+                          return (
+                            <td key={s.index} className="px-1 py-1 text-center">
+                              <Cell2 tone="empty" />
+                              {goal > 0 && (
+                                <div className="mt-0.5 text-[9px] text-muted-foreground">
+                                  meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                </div>
+                              )}
+                            </td>
+                          );
                         }
                         const tone =
                           goal === 0
@@ -416,9 +433,33 @@ function Heatmap({
                         return (
                           <td key={s.index} className="px-1 py-1 text-center">
                             <Cell2 tone={tone} value={e.quantity} />
+                            {goal > 0 && (
+                              <div className="mt-0.5 text-[9px] text-muted-foreground">
+                                meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                              </div>
+                            )}
                           </td>
                         );
                       })}
+                      <td className="px-2 py-1 text-center font-semibold">
+                        {goal > 0 ? Math.round(expectedPerHour) : "—"}
+                      </td>
+                      <td className="px-2 py-1 text-center font-semibold">{goal || "—"}</td>
+                      <td className="px-2 py-1 text-center font-semibold">{realized}</td>
+                      <td
+                        className={cn(
+                          "px-2 py-1 text-center font-bold",
+                          goal === 0
+                            ? "text-muted-foreground"
+                            : pct >= 100
+                            ? "text-success"
+                            : pct >= 70
+                            ? "text-warning"
+                            : "text-destructive",
+                        )}
+                      >
+                        {goal > 0 ? `${pct}%` : "—"}
+                      </td>
                     </tr>
                   );
                 })}
