@@ -398,7 +398,7 @@ function Heatmap({
         <thead>
           <tr>
             <th className="sticky left-0 bg-card px-2 py-1 text-left font-semibold">Máquina</th>
-            {TIME_SLOTS.map((s, i) => (
+            {slots.map((s, i) => (
               <Fragment key={`th-${s.index}`}>
                 {i === 5 && (
                   <th
@@ -426,7 +426,7 @@ function Heatmap({
             return (
               <Fragment key={`area-${area.id}`}>
                 <tr>
-                  <td colSpan={TIME_SLOTS.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <td colSpan={slots.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {area.name}
                   </td>
                 </tr>
@@ -446,7 +446,7 @@ function Heatmap({
                           {operator ? `Op.: ${operator}` : "Sem operador"}
                         </div>
                       </td>
-                      {TIME_SLOTS.map((s, i) => {
+                      {slots.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         const inGoal = goalSlots.some((g) => g.index === s.index);
                         const lunchCell = i === 5 ? (
