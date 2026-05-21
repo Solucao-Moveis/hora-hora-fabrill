@@ -22,12 +22,13 @@ export const fetchViewerDashboard = createServerFn({ method: "POST" })
       throw new Error("Link de visualização inválido ou desativado.");
     }
 
-    const [areasR, machinesR, goalsR, entriesR, operatorsR] = await Promise.all([
+    const [areasR, machinesR, goalsR, entriesR, operatorsR, overtimeR] = await Promise.all([
       supabaseAdmin.from("areas").select("*").order("sort_order"),
       supabaseAdmin.from("machines").select("*").order("sort_order"),
       supabaseAdmin.from("production_goals").select("*").eq("goal_date", date),
       supabaseAdmin.from("production_entries").select("*").eq("entry_date", date),
       supabaseAdmin.from("machine_operators").select("*").eq("log_date", date),
+      supabaseAdmin.from("overtime_days").select("enabled").eq("day", date).maybeSingle(),
     ]);
     for (const r of [areasR, machinesR, goalsR, entriesR, operatorsR]) {
       if (r.error) throw new Error(r.error.message);
@@ -40,5 +41,6 @@ export const fetchViewerDashboard = createServerFn({ method: "POST" })
       goals: goalsR.data ?? [],
       entries: entriesR.data ?? [],
       operators: operatorsR.data ?? [],
+      overtime: !!overtimeR.data?.enabled,
     };
   });
