@@ -10,7 +10,7 @@ import {
   type Area,
   type Machine,
 } from "@/lib/queries";
-import { TIME_SLOTS, todayIso, formatDateBR, LUNCH_LABEL, getGoalTimeSlots, getTotalMinutes } from "@/lib/time-slots";
+import { todayIso, formatDateBR, LUNCH_LABEL, getGoalTimeSlots, getTotalMinutes, getApontamentoSlots } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,8 +96,9 @@ export function Dashboard({ restrictAreaIds }: Props) {
   const entries = entriesQ.data ?? [];
   const operators = operatorsQ.data ?? [];
   const overtime = !!overtimeQ.data;
-  const goalSlots = getGoalTimeSlots(overtime);
-  const totalMinutesForGoal = getTotalMinutes(overtime);
+  const apontamentoSlots = getApontamentoSlots(date);
+  const goalSlots = getGoalTimeSlots(overtime, date);
+  const totalMinutesForGoal = getTotalMinutes(overtime, date);
 
   // BAR DATA: meta vs realizado por máquina
   const barData = filteredMachines.map((m) => {
@@ -110,7 +111,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
 
   // LINE DATA: produção acumulada ao longo das horas
   const totalGoal = goals.reduce((s, g) => s + g.goal, 0);
-  const lineData = TIME_SLOTS.map((slot) => {
+  const lineData = apontamentoSlots.map((slot) => {
     const hourProd = entries
       .filter((e) => e.hour_slot === slot.index)
       .reduce((s, e) => s + e.quantity, 0);
@@ -284,6 +285,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
             goals={goals}
             operators={operators}
             overtime={overtime}
+            date={date}
           />
         </CardContent>
       </Card>
