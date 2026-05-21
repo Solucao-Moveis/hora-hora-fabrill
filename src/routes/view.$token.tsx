@@ -117,6 +117,7 @@ function ViewerPage() {
               entries={data.entries}
               goals={data.goals}
               operators={data.operators}
+              overtime={data.overtime}
             />
           </CardContent>
         </Card>
@@ -154,16 +155,20 @@ function HeatmapView({
   entries,
   goals,
   operators,
+  overtime,
 }: {
   machines: Machine[];
   areas: Area[];
   entries: { machine_id: string; hour_slot: number; quantity: number }[];
   goals: { machine_id: string; goal: number }[];
   operators: { machine_id: string; operator_name: string }[];
+  overtime: boolean;
 }) {
   if (machines.length === 0) {
     return <div className="text-sm text-muted-foreground">Sem máquinas para exibir.</div>;
   }
+  const goalSlots = overtime ? TIME_SLOTS : TIME_SLOTS.filter((s) => s.index <= 8);
+  const goalSlotsCount = goalSlots.length;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-xs">
@@ -199,7 +204,7 @@ function HeatmapView({
                 </tr>
                 {ams.map((m) => {
                   const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
-                  const expectedPerHour = goal / TIME_SLOTS.length;
+                  const expectedPerHour = goal / goalSlotsCount;
                   const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
                   const realized = entries.filter((x) => x.machine_id === m.id).reduce((s, x) => s + x.quantity, 0);
                   const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
@@ -213,11 +218,12 @@ function HeatmapView({
                       </td>
                       {TIME_SLOTS.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
+                        const inGoal = goalSlots.some((g) => g.index === s.index);
                         const qty = e?.quantity;
                         const tone =
                           qty == null
                             ? "empty"
-                            : goal === 0
+                            : goal === 0 || !inGoal
                             ? "neutral"
                             : qty >= expectedPerHour
                             ? "ok"
@@ -242,10 +248,13 @@ function HeatmapView({
                               <div className={cn("mx-auto flex h-7 w-10 items-center justify-center rounded text-[11px] font-bold", toneClass)}>
                                 {qty ?? "—"}
                               </div>
-                              {goal > 0 && (
+                              {goal > 0 && inGoal && (
                                 <div className="mt-0.5 text-[9px] text-muted-foreground">
                                   meta {Math.round(expectedPerHour)}
                                 </div>
+                              )}
+                              {!inGoal && (
+                                <div className="mt-0.5 text-[9px] text-muted-foreground">extra</div>
                               )}
                             </td>
                           </Fragment>
