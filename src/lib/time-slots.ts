@@ -30,13 +30,28 @@ export const ALL_TIME_SLOTS: TimeSlot[] = [...REGULAR_TIME_SLOTS, ...OVERTIME_TI
 /** Slots used for apontamento (sempre inclui horas extras para permitir lançar) */
 export const TIME_SLOTS: TimeSlot[] = ALL_TIME_SLOTS;
 
+/** Sexta-feira: jornada reduzida (sem 17h, 18h, 19h) */
+export function isFriday(iso: string): boolean {
+  if (!iso) return false;
+  const [y, m, d] = iso.split("-").map(Number);
+  // meio-dia para evitar problema de timezone
+  return new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0).getDay() === 5;
+}
+
+/** Slots disponíveis para apontamento conforme a data (sexta termina às 16h) */
+export function getApontamentoSlots(iso: string): TimeSlot[] {
+  if (isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  return ALL_TIME_SLOTS;
+}
+
 /** Slots válidos para cálculo de meta, conforme bandeira de hora extra */
-export function getGoalTimeSlots(overtime: boolean): TimeSlot[] {
+export function getGoalTimeSlots(overtime: boolean, iso?: string): TimeSlot[] {
+  if (iso && isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return overtime ? ALL_TIME_SLOTS : REGULAR_TIME_SLOTS;
 }
 
-export function getTotalMinutes(overtime: boolean): number {
-  return getGoalTimeSlots(overtime).reduce((s, t) => s + t.minutes, 0);
+export function getTotalMinutes(overtime: boolean, iso?: string): number {
+  return getGoalTimeSlots(overtime, iso).reduce((s, t) => s + t.minutes, 0);
 }
 
 export const TOTAL_MINUTES = REGULAR_TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 540 (compat)
