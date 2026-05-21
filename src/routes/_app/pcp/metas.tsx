@@ -2,12 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { fetchAreas, fetchMachines, fetchGoalsForDate, upsertGoal } from "@/lib/queries";
+import { fetchAreas, fetchMachines, fetchGoalsForDate, upsertGoal, fetchOvertime, setOvertime } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/app/DatePicker";
 import { todayIso, formatDateBR } from "@/lib/time-slots";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pcp/metas")({
@@ -28,6 +30,10 @@ function MetasPage() {
     queryKey: ["goals", date, "all"],
     queryFn: () => fetchGoalsForDate(date),
   });
+  const overtimeQ = useQuery({
+    queryKey: ["overtime", date],
+    queryFn: () => fetchOvertime(date),
+  });
 
   if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
 
@@ -45,6 +51,25 @@ function MetasPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
+          <div className="flex h-10 items-center gap-2 rounded-md border bg-card px-3">
+            <Switch
+              id="overtime-switch"
+              checked={!!overtimeQ.data}
+              onCheckedChange={async (checked) => {
+                try {
+                  await setOvertime(date, checked, user!.id);
+                  qc.invalidateQueries({ queryKey: ["overtime", date] });
+                  toast.success(checked ? "Hora extra ativada (até 19h)" : "Hora extra desativada (até 17h)");
+                } catch (e: unknown) {
+                  const er = e as { message?: string };
+                  toast.error(er.message ?? "Erro ao salvar");
+                }
+              }}
+            />
+            <Label htmlFor="overtime-switch" className="cursor-pointer text-xs">
+              Hora extra (até 19h)
+            </Label>
+          </div>
           <Badge variant="outline" className="h-10 items-center px-3 text-sm">
             Total meta: <span className="ml-1 font-bold">{totalMeta}</span>
           </Badge>

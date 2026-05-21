@@ -122,3 +122,25 @@ export async function upsertEntry(
     );
   if (error) throw error;
 }
+
+export type OvertimeDay = { id: string; day: string; enabled: boolean };
+
+export async function fetchOvertime(date: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("overtime_days")
+    .select("enabled")
+    .eq("day", date)
+    .maybeSingle();
+  if (error) throw error;
+  return !!data?.enabled;
+}
+
+export async function setOvertime(date: string, enabled: boolean, user_id: string) {
+  const { error } = await supabase
+    .from("overtime_days")
+    .upsert(
+      { day: date, enabled, created_by: user_id, updated_at: new Date().toISOString() },
+      { onConflict: "day" },
+    );
+  if (error) throw error;
+}

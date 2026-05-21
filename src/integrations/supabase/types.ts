@@ -102,6 +102,33 @@ export type Database = {
           },
         ]
       }
+      overtime_days: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day: string
+          enabled: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       production_entries: {
         Row: {
           created_by: string | null
