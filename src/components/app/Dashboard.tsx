@@ -9,7 +9,7 @@ import {
   type Area,
   type Machine,
 } from "@/lib/queries";
-import { TIME_SLOTS, todayIso, formatDateBR, TOTAL_MINUTES } from "@/lib/time-slots";
+import { TIME_SLOTS, todayIso, formatDateBR, TOTAL_MINUTES, LUNCH_LABEL } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -108,7 +108,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
       .reduce((s, e) => s + e.quantity, 0);
     const minutesUntilEnd = TIME_SLOTS.slice(0, i + 1).reduce((s, t) => s + t.minutes, 0);
     const expected = Math.round((totalGoal * minutesUntilEnd) / TOTAL_MINUTES);
-    return { slot: slot.start, hourProd, expected };
+    return { slot: slot.label, hourProd, expected };
   });
   let acc = 0;
   const lineDataAcc = lineData.map((d) => {
@@ -370,10 +370,20 @@ function Heatmap({
         <thead>
           <tr>
             <th className="sticky left-0 bg-card px-2 py-1 text-left font-semibold">Máquina</th>
-            {TIME_SLOTS.map((s) => (
-              <th key={s.index} className="px-1 py-1 text-center font-medium text-muted-foreground">
-                {s.start}
-              </th>
+            {TIME_SLOTS.map((s, i) => (
+              <>
+                {i === 5 && (
+                  <th
+                    key="lunch-h"
+                    className="px-1 py-1 text-center text-[10px] font-medium text-muted-foreground"
+                  >
+                    {LUNCH_LABEL}
+                  </th>
+                )}
+                <th key={s.index} className="px-1 py-1 text-center font-medium text-muted-foreground">
+                  {s.label}
+                </th>
+              </>
             ))}
             <th className="px-2 py-1 text-center font-semibold">Meta/h</th>
             <th className="px-2 py-1 text-center font-semibold">Meta total</th>
@@ -388,7 +398,7 @@ function Heatmap({
             return (
               <>
                 <tr key={`area-${area.id}`}>
-                  <td colSpan={TIME_SLOTS.length + 5} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <td colSpan={TIME_SLOTS.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {area.name}
                   </td>
                 </tr>
@@ -408,18 +418,26 @@ function Heatmap({
                           {operator ? `Op.: ${operator}` : "Sem operador"}
                         </div>
                       </td>
-                      {TIME_SLOTS.map((s) => {
+                      {TIME_SLOTS.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
+                        const lunchCell = i === 5 ? (
+                          <td key={`lunch-${m.id}`} className="bg-muted/40 px-1 py-1 text-center text-[10px] text-muted-foreground">
+                            almoço
+                          </td>
+                        ) : null;
                         if (!e) {
                           return (
-                            <td key={s.index} className="px-1 py-1 text-center">
-                              <Cell2 tone="empty" />
-                              {goal > 0 && (
-                                <div className="mt-0.5 text-[9px] text-muted-foreground">
-                                  meta {Math.round(expectedPerHour * (s.minutes / 60))}
-                                </div>
-                              )}
-                            </td>
+                            <>
+                              {lunchCell}
+                              <td key={s.index} className="px-1 py-1 text-center">
+                                <Cell2 tone="empty" />
+                                {goal > 0 && (
+                                  <div className="mt-0.5 text-[9px] text-muted-foreground">
+                                    meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                  </div>
+                                )}
+                              </td>
+                            </>
                           );
                         }
                         const tone =
@@ -431,14 +449,17 @@ function Heatmap({
                             ? "warn"
                             : "bad";
                         return (
-                          <td key={s.index} className="px-1 py-1 text-center">
-                            <Cell2 tone={tone} value={e.quantity} />
-                            {goal > 0 && (
-                              <div className="mt-0.5 text-[9px] text-muted-foreground">
-                                meta {Math.round(expectedPerHour * (s.minutes / 60))}
-                              </div>
-                            )}
-                          </td>
+                          <>
+                            {lunchCell}
+                            <td key={s.index} className="px-1 py-1 text-center">
+                              <Cell2 tone={tone} value={e.quantity} />
+                              {goal > 0 && (
+                                <div className="mt-0.5 text-[9px] text-muted-foreground">
+                                  meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                </div>
+                              )}
+                            </td>
+                          </>
                         );
                       })}
                       <td className="px-2 py-1 text-center font-semibold">

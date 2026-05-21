@@ -8,19 +8,21 @@ export type TimeSlot = {
 };
 
 export const TIME_SLOTS: TimeSlot[] = [
-  { index: 0, start: "07:30", end: "08:30", minutes: 60, label: "07:30 – 08:30" },
-  { index: 1, start: "08:30", end: "09:30", minutes: 60, label: "08:30 – 09:30" },
-  { index: 2, start: "09:30", end: "10:30", minutes: 60, label: "09:30 – 10:30" },
-  { index: 3, start: "10:30", end: "11:30", minutes: 60, label: "10:30 – 11:30" },
-  { index: 4, start: "11:30", end: "12:30", minutes: 60, label: "11:30 – 12:30" },
-  { index: 5, start: "12:30", end: "13:30", minutes: 60, label: "12:30 – 13:30" },
-  { index: 6, start: "13:30", end: "14:30", minutes: 60, label: "13:30 – 14:30" },
-  { index: 7, start: "14:30", end: "15:30", minutes: 60, label: "14:30 – 15:30" },
-  { index: 8, start: "15:30", end: "16:30", minutes: 60, label: "15:30 – 16:30" },
-  { index: 9, start: "16:30", end: "17:00", minutes: 30, label: "16:30 – 17:00" },
+  { index: 0, start: "07:00", end: "08:00", minutes: 60, label: "08h" },
+  { index: 1, start: "08:00", end: "09:00", minutes: 60, label: "09h" },
+  { index: 2, start: "09:00", end: "10:00", minutes: 60, label: "10h" },
+  { index: 3, start: "10:00", end: "11:00", minutes: 60, label: "11h" },
+  { index: 4, start: "11:00", end: "12:00", minutes: 60, label: "12h" },
+  // 12h–13h: horário de almoço (sem medição)
+  { index: 5, start: "13:00", end: "14:00", minutes: 60, label: "14h" },
+  { index: 6, start: "14:00", end: "15:00", minutes: 60, label: "15h" },
+  { index: 7, start: "15:00", end: "16:00", minutes: 60, label: "16h" },
+  { index: 8, start: "16:00", end: "17:00", minutes: 60, label: "17h" },
 ];
 
-export const TOTAL_MINUTES = TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 570
+export const TOTAL_MINUTES = TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 540
+
+export const LUNCH_LABEL = "12h–13h Almoço";
 
 export function todayIso(): string {
   const d = new Date();
