@@ -7,7 +7,7 @@ export type TimeSlot = {
   minutes: number;
 };
 
-export const TIME_SLOTS: TimeSlot[] = [
+export const REGULAR_TIME_SLOTS: TimeSlot[] = [
   { index: 0, start: "07:00", end: "08:00", minutes: 60, label: "08h" },
   { index: 1, start: "08:00", end: "09:00", minutes: 60, label: "09h" },
   { index: 2, start: "09:00", end: "10:00", minutes: 60, label: "10h" },
@@ -20,7 +20,26 @@ export const TIME_SLOTS: TimeSlot[] = [
   { index: 8, start: "16:00", end: "17:00", minutes: 60, label: "17h" },
 ];
 
-export const TOTAL_MINUTES = TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 540
+export const OVERTIME_TIME_SLOTS: TimeSlot[] = [
+  { index: 9, start: "17:00", end: "18:00", minutes: 60, label: "18h" },
+  { index: 10, start: "18:00", end: "19:00", minutes: 60, label: "19h" },
+];
+
+export const ALL_TIME_SLOTS: TimeSlot[] = [...REGULAR_TIME_SLOTS, ...OVERTIME_TIME_SLOTS];
+
+/** Slots used for apontamento (sempre inclui horas extras para permitir lançar) */
+export const TIME_SLOTS: TimeSlot[] = ALL_TIME_SLOTS;
+
+/** Slots válidos para cálculo de meta, conforme bandeira de hora extra */
+export function getGoalTimeSlots(overtime: boolean): TimeSlot[] {
+  return overtime ? ALL_TIME_SLOTS : REGULAR_TIME_SLOTS;
+}
+
+export function getTotalMinutes(overtime: boolean): number {
+  return getGoalTimeSlots(overtime).reduce((s, t) => s + t.minutes, 0);
+}
+
+export const TOTAL_MINUTES = REGULAR_TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 540 (compat)
 
 export const LUNCH_LABEL = "12h–13h Almoço";
 
