@@ -28,6 +28,10 @@ function generateToken(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Stable published URL — funciona sem login para qualquer pessoa com o link.
+// O preview (id-preview--…) exige login do Lovable; por isso geramos sempre o link publicado.
+const PUBLIC_VIEW_ORIGIN = "https://project--54244b10-810e-47d7-92a5-2c1dff58cc93.lovable.app";
+
 function ViewerTokensSection() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
@@ -76,7 +80,7 @@ function ViewerTokensSection() {
   };
 
   const copyLink = async (t: ViewerToken) => {
-    const url = `${window.location.origin}/view/${t.token}`;
+    const url = `${PUBLIC_VIEW_ORIGIN}/view/${t.token}`;
     await navigator.clipboard.writeText(url);
     toast.success("Link copiado");
   };
@@ -108,7 +112,7 @@ function ViewerTokensSection() {
             <div className="text-sm text-muted-foreground">Nenhum link gerado.</div>
           )}
           {(tokensQ.data ?? []).map((t) => {
-            const url = `${window.location.origin}/view/${t.token}`;
+            const url = `${PUBLIC_VIEW_ORIGIN}/view/${t.token}`;
             const visible = showToken[t.id];
             return (
               <div key={t.id} className="flex flex-wrap items-center gap-2 rounded border bg-card px-3 py-2">
