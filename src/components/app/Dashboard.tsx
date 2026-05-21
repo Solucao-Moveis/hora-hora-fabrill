@@ -373,16 +373,22 @@ function Heatmap({
   entries,
   goals,
   operators,
+  overtime,
 }: {
   machines: Machine[];
   areas: Area[];
   entries: { machine_id: string; hour_slot: number; quantity: number }[];
   goals: { machine_id: string; goal: number }[];
   operators: { machine_id: string; operator_name: string }[];
+  overtime: boolean;
 }) {
   if (machines.length === 0) {
     return <div className="text-sm text-muted-foreground">Selecione filtros para visualizar.</div>;
   }
+  const goalSlots = overtime
+    ? TIME_SLOTS
+    : TIME_SLOTS.filter((s) => s.index <= 8);
+  const goalSlotsCount = goalSlots.length;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-xs">
@@ -423,7 +429,7 @@ function Heatmap({
                 </tr>
                 {ams.map((m) => {
                   const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
-                  const expectedPerHour = goal / TIME_SLOTS.length;
+                  const expectedPerHour = goal / goalSlotsCount;
                   const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
                   const realized = entries
                     .filter((x) => x.machine_id === m.id)
@@ -439,6 +445,7 @@ function Heatmap({
                       </td>
                       {TIME_SLOTS.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
+                        const inGoal = goalSlots.some((g) => g.index === s.index);
                         const lunchCell = i === 5 ? (
                           <td key={`lunch-${m.id}`} className="bg-muted/40 px-1 py-1 text-center text-[10px] text-muted-foreground">
                             almoço
@@ -450,10 +457,13 @@ function Heatmap({
                               {lunchCell}
                               <td key={s.index} className="px-1 py-1 text-center">
                                 <Cell2 tone="empty" />
-                                {goal > 0 && (
+                                {goal > 0 && inGoal && (
                                   <div className="mt-0.5 text-[9px] text-muted-foreground">
                                     meta {Math.round(expectedPerHour * (s.minutes / 60))}
                                   </div>
+                                )}
+                                {!inGoal && (
+                                  <div className="mt-0.5 text-[9px] text-muted-foreground">extra</div>
                                 )}
                               </td>
                             </Fragment>
@@ -461,6 +471,8 @@ function Heatmap({
                         }
                         const tone =
                           goal === 0
+                            ? "neutral"
+                            : !inGoal
                             ? "neutral"
                             : e.quantity >= expectedPerHour
                             ? "ok"
@@ -472,10 +484,13 @@ function Heatmap({
                             {lunchCell}
                             <td key={s.index} className="px-1 py-1 text-center">
                               <Cell2 tone={tone} value={e.quantity} />
-                              {goal > 0 && (
+                              {goal > 0 && inGoal && (
                                 <div className="mt-0.5 text-[9px] text-muted-foreground">
                                   meta {Math.round(expectedPerHour * (s.minutes / 60))}
                                 </div>
+                              )}
+                              {!inGoal && (
+                                <div className="mt-0.5 text-[9px] text-muted-foreground">extra</div>
                               )}
                             </td>
                           </Fragment>
