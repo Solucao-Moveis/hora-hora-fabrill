@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchViewerDashboard } from "@/lib/viewer.functions";
-import { TIME_SLOTS, todayIso, formatDateBR, LUNCH_LABEL } from "@/lib/time-slots";
+import { todayIso, formatDateBR, LUNCH_LABEL, getApontamentoSlots, getGoalTimeSlots } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/app/DatePicker";
