@@ -376,6 +376,7 @@ function Heatmap({
   goals,
   operators,
   overtime,
+  date,
 }: {
   machines: Machine[];
   areas: Area[];
@@ -383,13 +384,13 @@ function Heatmap({
   goals: { machine_id: string; goal: number }[];
   operators: { machine_id: string; operator_name: string }[];
   overtime: boolean;
+  date: string;
 }) {
   if (machines.length === 0) {
     return <div className="text-sm text-muted-foreground">Selecione filtros para visualizar.</div>;
   }
-  const goalSlots = overtime
-    ? TIME_SLOTS
-    : TIME_SLOTS.filter((s) => s.index <= 8);
+  const slots = getApontamentoSlots(date);
+  const goalSlots = getGoalTimeSlots(overtime, date);
   const goalSlotsCount = goalSlots.length;
   return (
     <div className="overflow-x-auto">
