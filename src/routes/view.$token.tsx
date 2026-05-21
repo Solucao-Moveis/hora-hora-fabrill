@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchViewerDashboard } from "@/lib/viewer.functions";
-import { TIME_SLOTS, todayIso, formatDateBR, LUNCH_LABEL } from "@/lib/time-slots";
+import { todayIso, formatDateBR, LUNCH_LABEL, getApontamentoSlots, getGoalTimeSlots } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/app/DatePicker";
@@ -118,6 +118,7 @@ function ViewerPage() {
               goals={data.goals}
               operators={data.operators}
               overtime={data.overtime}
+              date={date}
             />
           </CardContent>
         </Card>
@@ -156,6 +157,7 @@ function HeatmapView({
   goals,
   operators,
   overtime,
+  date,
 }: {
   machines: Machine[];
   areas: Area[];
@@ -163,11 +165,13 @@ function HeatmapView({
   goals: { machine_id: string; goal: number }[];
   operators: { machine_id: string; operator_name: string }[];
   overtime: boolean;
+  date: string;
 }) {
   if (machines.length === 0) {
     return <div className="text-sm text-muted-foreground">Sem máquinas para exibir.</div>;
   }
-  const goalSlots = overtime ? TIME_SLOTS : TIME_SLOTS.filter((s) => s.index <= 8);
+  const slots = getApontamentoSlots(date);
+  const goalSlots = getGoalTimeSlots(overtime, date);
   const goalSlotsCount = goalSlots.length;
   return (
     <div className="overflow-x-auto">
@@ -175,7 +179,7 @@ function HeatmapView({
         <thead>
           <tr>
             <th className="sticky left-0 bg-card px-2 py-1 text-left font-semibold">Máquina</th>
-            {TIME_SLOTS.map((s, i) => (
+            {slots.map((s, i) => (
               <Fragment key={`th-${s.index}`}>
                 {i === 5 && (
                   <th className="px-1 py-1 text-center text-[10px] font-medium text-muted-foreground">
@@ -198,7 +202,7 @@ function HeatmapView({
             return (
               <Fragment key={area.id}>
                 <tr>
-                  <td colSpan={TIME_SLOTS.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <td colSpan={slots.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {area.name}
                   </td>
                 </tr>
@@ -216,7 +220,7 @@ function HeatmapView({
                           {operator ? `Op.: ${operator}` : "Sem operador"}
                         </div>
                       </td>
-                      {TIME_SLOTS.map((s, i) => {
+                      {slots.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         const inGoal = goalSlots.some((g) => g.index === s.index);
                         const qty = e?.quantity;

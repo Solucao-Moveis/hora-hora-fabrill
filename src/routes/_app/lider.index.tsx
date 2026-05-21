@@ -11,7 +11,7 @@ import {
   upsertEntry,
   type Machine,
 } from "@/lib/queries";
-import { TIME_SLOTS, todayIso, formatDateBR } from "@/lib/time-slots";
+import { todayIso, formatDateBR, getApontamentoSlots } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,7 +183,7 @@ function MachineCard({
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-          {TIME_SLOTS.map((slot) => {
+          {getApontamentoSlots(date).map((slot) => {
             const e = entries.find((x) => x.hour_slot === slot.index);
             return (
               <SlotInput

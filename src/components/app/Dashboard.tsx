@@ -10,7 +10,7 @@ import {
   type Area,
   type Machine,
 } from "@/lib/queries";
-import { TIME_SLOTS, todayIso, formatDateBR, LUNCH_LABEL, getGoalTimeSlots, getTotalMinutes } from "@/lib/time-slots";
+import { todayIso, formatDateBR, LUNCH_LABEL, getGoalTimeSlots, getTotalMinutes, getApontamentoSlots } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,8 +96,9 @@ export function Dashboard({ restrictAreaIds }: Props) {
   const entries = entriesQ.data ?? [];
   const operators = operatorsQ.data ?? [];
   const overtime = !!overtimeQ.data;
-  const goalSlots = getGoalTimeSlots(overtime);
-  const totalMinutesForGoal = getTotalMinutes(overtime);
+  const apontamentoSlots = getApontamentoSlots(date);
+  const goalSlots = getGoalTimeSlots(overtime, date);
+  const totalMinutesForGoal = getTotalMinutes(overtime, date);
 
   // BAR DATA: meta vs realizado por máquina
   const barData = filteredMachines.map((m) => {
@@ -110,7 +111,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
 
   // LINE DATA: produção acumulada ao longo das horas
   const totalGoal = goals.reduce((s, g) => s + g.goal, 0);
-  const lineData = TIME_SLOTS.map((slot) => {
+  const lineData = apontamentoSlots.map((slot) => {
     const hourProd = entries
       .filter((e) => e.hour_slot === slot.index)
       .reduce((s, e) => s + e.quantity, 0);
@@ -284,6 +285,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
             goals={goals}
             operators={operators}
             overtime={overtime}
+            date={date}
           />
         </CardContent>
       </Card>
@@ -374,6 +376,7 @@ function Heatmap({
   goals,
   operators,
   overtime,
+  date,
 }: {
   machines: Machine[];
   areas: Area[];
@@ -381,13 +384,13 @@ function Heatmap({
   goals: { machine_id: string; goal: number }[];
   operators: { machine_id: string; operator_name: string }[];
   overtime: boolean;
+  date: string;
 }) {
   if (machines.length === 0) {
     return <div className="text-sm text-muted-foreground">Selecione filtros para visualizar.</div>;
   }
-  const goalSlots = overtime
-    ? TIME_SLOTS
-    : TIME_SLOTS.filter((s) => s.index <= 8);
+  const slots = getApontamentoSlots(date);
+  const goalSlots = getGoalTimeSlots(overtime, date);
   const goalSlotsCount = goalSlots.length;
   return (
     <div className="overflow-x-auto">
@@ -395,7 +398,7 @@ function Heatmap({
         <thead>
           <tr>
             <th className="sticky left-0 bg-card px-2 py-1 text-left font-semibold">Máquina</th>
-            {TIME_SLOTS.map((s, i) => (
+            {slots.map((s, i) => (
               <Fragment key={`th-${s.index}`}>
                 {i === 5 && (
                   <th
@@ -423,7 +426,7 @@ function Heatmap({
             return (
               <Fragment key={`area-${area.id}`}>
                 <tr>
-                  <td colSpan={TIME_SLOTS.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <td colSpan={slots.length + 6} className="bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {area.name}
                   </td>
                 </tr>
@@ -443,7 +446,7 @@ function Heatmap({
                           {operator ? `Op.: ${operator}` : "Sem operador"}
                         </div>
                       </td>
-                      {TIME_SLOTS.map((s, i) => {
+                      {slots.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         const inGoal = goalSlots.some((g) => g.index === s.index);
                         const lunchCell = i === 5 ? (
