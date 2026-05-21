@@ -7,7 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Copy, Trash2, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/_app/pcp/usuarios")({
   component: UsuariosPage,
@@ -83,6 +87,8 @@ function UsuariosPage() {
           Novos usuários se cadastram pela tela de login e aparecem aqui.
         </p>
       </div>
+
+      <ViewerTokensSection />
 
       <div className="grid gap-4">
         {data?.profiles.map((p) => {

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ViewTokenRouteImport } from './routes/view.$token'
 import { Route as AppLiderIndexRouteImport } from './routes/_app/lider.index'
 import { Route as AppPcpUsuariosRouteImport } from './routes/_app/pcp/usuarios'
 import { Route as AppPcpRelatoriosRouteImport } from './routes/_app/pcp/relatorios'
@@ -31,6 +32,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ViewTokenRoute = ViewTokenRouteImport.update({
+  id: '/view/$token',
+  path: '/view/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppLiderIndexRoute = AppLiderIndexRouteImport.update({
@@ -67,6 +73,7 @@ const AppLiderDashboardRoute = AppLiderDashboardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/view/$token': typeof ViewTokenRoute
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/view/$token': typeof ViewTokenRoute
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/metas': typeof AppPcpMetasRoute
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/view/$token': typeof ViewTokenRoute
   '/_app/lider/dashboard': typeof AppLiderDashboardRoute
   '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
   '/_app/pcp/metas': typeof AppPcpMetasRoute
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/view/$token'
     | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/metas'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/view/$token'
     | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/metas'
@@ -122,6 +133,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/view/$token'
     | '/_app/lider/dashboard'
     | '/_app/pcp/dashboard'
     | '/_app/pcp/metas'
@@ -134,6 +146,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ViewTokenRoute: typeof ViewTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -157,6 +170,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/view/$token': {
+      id: '/view/$token'
+      path: '/view/$token'
+      fullPath: '/view/$token'
+      preLoaderRoute: typeof ViewTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/lider/': {
@@ -228,7 +248,18 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ViewTokenRoute: ViewTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
