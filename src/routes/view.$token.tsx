@@ -26,6 +26,12 @@ function ViewerPage() {
     retry: false,
   });
 
+  const data = q.data;
+  const filteredMachines = useMemo(
+    () => (data?.machines ?? []).filter((m) => areaFilter === "all" || m.area_id === areaFilter),
+    [data, areaFilter],
+  );
+
   if (q.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
@@ -33,7 +39,7 @@ function ViewerPage() {
       </div>
     );
   }
-  if (q.isError) {
+  if (q.isError || !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center space-y-3">
@@ -46,12 +52,7 @@ function ViewerPage() {
     );
   }
 
-  const data = q.data!;
   const visibleAreas = data.areas;
-  const filteredMachines = useMemo(
-    () => data.machines.filter((m) => areaFilter === "all" || m.area_id === areaFilter),
-    [data.machines, areaFilter],
-  );
 
   const totalMeta = data.goals
     .filter((g) => filteredMachines.some((m) => m.id === g.machine_id))
