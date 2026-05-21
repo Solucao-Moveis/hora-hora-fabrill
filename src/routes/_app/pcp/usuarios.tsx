@@ -28,6 +28,10 @@ function generateToken(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Stable published URL — funciona sem login para qualquer pessoa com o link.
+// O preview (id-preview--…) exige login do Lovable; por isso geramos sempre o link publicado.
+const PUBLIC_VIEW_ORIGIN = "https://project--54244b10-810e-47d7-92a5-2c1dff58cc93.lovable.app";
+
 function ViewerTokensSection() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
