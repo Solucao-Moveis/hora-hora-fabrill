@@ -9,6 +9,7 @@ import {
   fetchOvertime,
   fetchJustificationsForDate,
   upsertJustification,
+  fetchLeadersByArea,
   type Area,
   type Machine,
 } from "@/lib/queries";
@@ -445,12 +446,17 @@ export function Dashboard({ restrictAreaIds }: Props) {
     queryFn: () => fetchJustificationsForDate(date, machineIds),
     enabled: machineIds.length > 0,
   });
+  const leadersQ = useQuery({
+    queryKey: ["leaders-by-area"],
+    queryFn: fetchLeadersByArea,
+  });
 
   const goals = goalsQ.data ?? [];
   const entries = entriesQ.data ?? [];
   const operators = operatorsQ.data ?? [];
   const overtime = !!overtimeQ.data;
   const justifications = justifQ.data ?? [];
+  const leadersByArea = leadersQ.data ?? {};
   const apontamentoSlots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
   const totalMinutesForGoal = getTotalMinutes(overtime, date);
@@ -561,6 +567,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
                 operators,
                 justifications,
                 overtime,
+                leadersByArea,
               })
             }
           >
