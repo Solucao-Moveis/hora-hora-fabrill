@@ -552,7 +552,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
             variant="outline"
             className="ml-auto h-10 gap-2"
             onClick={() =>
-              exportReportCsv({
+              exportReportPdf({
                 date,
                 areas: visibleAreas,
                 machines: filteredMachines,
