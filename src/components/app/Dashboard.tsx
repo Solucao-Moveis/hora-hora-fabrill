@@ -495,11 +495,17 @@ export function Dashboard({ restrictAreaIds }: Props) {
   const leadersByArea = leadersQ.data ?? {};
   const apontamentoSlots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const totalMinutesForGoal = getTotalMinutes(overtime, date);
+  const baseSlots = getBaseGoalSlots(date);
+  const baseSlotsCount = baseSlots.length || 1;
+  const baseMinutes = baseSlots.reduce((s, t) => s + t.minutes, 0) || 1;
 
   // BAR DATA: meta vs realizado por máquina
   const barData = filteredMachines.map((m) => {
-    const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+    const goal = effectiveDayGoal(
+      goals.find((g) => g.machine_id === m.id)?.goal ?? 0,
+      overtime,
+      date,
+    );
     const realizado = entries
       .filter((e) => e.machine_id === m.id)
       .reduce((s, e) => s + e.quantity, 0);
@@ -507,7 +513,8 @@ export function Dashboard({ restrictAreaIds }: Props) {
   });
 
   // LINE DATA: produção acumulada ao longo das horas
-  const totalGoal = goals.reduce((s, g) => s + g.goal, 0);
+  const totalBaseGoal = goals.reduce((s, g) => s + g.goal, 0);
+  const totalEffGoal = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
   const lineData = apontamentoSlots.map((slot) => {
     const hourProd = entries
       .filter((e) => e.hour_slot === slot.index)
@@ -516,10 +523,10 @@ export function Dashboard({ restrictAreaIds }: Props) {
     let expected = 0;
     if (goalIdx >= 0) {
       const minutesUntilEnd = goalSlots.slice(0, goalIdx + 1).reduce((s, t) => s + t.minutes, 0);
-      expected = Math.round((totalGoal * minutesUntilEnd) / totalMinutesForGoal);
+      // meta/hora constante baseada na jornada regular
+      expected = Math.round((totalBaseGoal * minutesUntilEnd) / baseMinutes);
     } else {
-      // slot fora da meta (ex: hora extra desativada) — mantém último valor da meta
-      expected = totalGoal;
+      expected = totalEffGoal;
     }
     return { slot: slot.label, hourProd, expected };
   });
@@ -534,7 +541,9 @@ export function Dashboard({ restrictAreaIds }: Props) {
     .map((area) => {
       const ms = allMachines.filter((m) => m.area_id === area.id);
       const ids = ms.map((m) => m.id);
-      const g = goals.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.goal, 0);
+      const g = goals
+        .filter((x) => ids.includes(x.machine_id))
+        .reduce((s, x) => s + effectiveDayGoal(x.goal, overtime, date), 0);
       const r = entries.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.quantity, 0);
       const pct = g > 0 ? Math.round((r / g) * 100) : 0;
       return { name: area.name, value: pct, realizado: r, meta: g };
