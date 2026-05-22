@@ -645,7 +645,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         <Card>
           <CardHeader><CardTitle className="text-base">Produção acumulada vs meta horária</CardTitle></CardHeader>
           <CardContent>
-            <ChartWrap empty={totalGoal === 0 && acc === 0}>
+            <ChartWrap empty={totalEffGoal === 0 && acc === 0}>
               <LineChart data={lineDataAcc}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="hora" />
