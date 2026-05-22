@@ -78,6 +78,7 @@ async function exportReportPdf({
   operators,
   justifications,
   overtime,
+  leadersByArea,
 }: {
   date: string;
   areas: Area[];
@@ -87,6 +88,7 @@ async function exportReportPdf({
   operators: { machine_id: string; operator_name: string }[];
   justifications: { machine_id: string; justification: string }[];
   overtime: boolean;
+  leadersByArea: Record<string, string[]>;
 }) {
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
