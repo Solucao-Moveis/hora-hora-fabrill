@@ -186,3 +186,35 @@ export async function upsertJustification(
     );
   if (error) throw error;
 }
+
+export async function fetchLeadersByArea(): Promise<Record<string, string[]>> {
+  // Get all 'lider' role users
+  const { data: roles, error: rolesErr } = await supabase
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "lider");
+  if (rolesErr) throw rolesErr;
+  const liderIds = (roles ?? []).map((r) => r.user_id);
+  if (liderIds.length === 0) return {};
+
+  const [{ data: areasLink, error: aErr }, { data: profiles, error: pErr }] = await Promise.all([
+    supabase.from("user_areas").select("user_id,area_id").in("user_id", liderIds),
+    supabase.from("profiles").select("id,full_name,email").in("id", liderIds),
+  ]);
+  if (aErr) throw aErr;
+  if (pErr) throw pErr;
+
+  const nameById = new Map<string, string>();
+  (profiles ?? []).forEach((p) => {
+    nameById.set(p.id, (p.full_name?.trim() || p.email || "—") as string);
+  });
+
+  const byArea: Record<string, string[]> = {};
+  (areasLink ?? []).forEach((row) => {
+    const name = nameById.get(row.user_id);
+    if (!name) return;
+    if (!byArea[row.area_id]) byArea[row.area_id] = [];
+    if (!byArea[row.area_id].includes(name)) byArea[row.area_id].push(name);
+  });
+  return byArea;
+}
