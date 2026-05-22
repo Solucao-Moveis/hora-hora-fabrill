@@ -7,6 +7,8 @@ import {
   fetchEntriesForDate,
   fetchOperatorsForDate,
   fetchOvertime,
+  fetchJustificationsForDate,
+  upsertJustification,
   type Area,
   type Machine,
 } from "@/lib/queries";
@@ -15,6 +17,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth-context";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   BarChart,
@@ -91,11 +97,17 @@ export function Dashboard({ restrictAreaIds }: Props) {
     queryKey: ["overtime", date],
     queryFn: () => fetchOvertime(date),
   });
+  const justifQ = useQuery({
+    queryKey: ["justifications", date, machineIds.join(",")],
+    queryFn: () => fetchJustificationsForDate(date, machineIds),
+    enabled: machineIds.length > 0,
+  });
 
   const goals = goalsQ.data ?? [];
   const entries = entriesQ.data ?? [];
   const operators = operatorsQ.data ?? [];
   const overtime = !!overtimeQ.data;
+  const justifications = justifQ.data ?? [];
   const apontamentoSlots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
   const totalMinutesForGoal = getTotalMinutes(overtime, date);
@@ -289,6 +301,216 @@ export function Dashboard({ restrictAreaIds }: Props) {
           />
         </CardContent>
       </Card>
+
+      <ObservationsCard
+        machines={filteredMachines}
+        areas={visibleAreas}
+        entries={entries}
+      />
+
+      <JustificationsCard
+        machines={filteredMachines}
+        areas={visibleAreas}
+        goals={goals}
+        entries={entries}
+        justifications={justifications}
+        date={date}
+      />
+    </div>
+  );
+}
+
+function ObservationsCard({
+  machines,
+  areas,
+  entries,
+}: {
+  machines: Machine[];
+  areas: Area[];
+  entries: { machine_id: string; hour_slot: number; observation: string | null }[];
+}) {
+  const withObs = entries.filter((e) => e.observation && e.observation.trim().length > 0);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Observações dos apontamentos</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {withObs.length === 0 ? (
+          <div className="text-sm text-muted-foreground">
+            Nenhuma observação registrada pelos líderes neste dia.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {areas.map((area) => {
+              const areaMachineIds = machines
+                .filter((m) => m.area_id === area.id)
+                .map((m) => m.id);
+              const areaObs = withObs.filter((e) => areaMachineIds.includes(e.machine_id));
+              if (!areaObs.length) return null;
+              return (
+                <div key={area.id} className="space-y-1">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {area.name}
+                  </div>
+                  <ul className="space-y-1 text-sm">
+                    {areaObs
+                      .sort((a, b) => a.hour_slot - b.hour_slot)
+                      .map((e, i) => {
+                        const m = machines.find((x) => x.id === e.machine_id);
+                        return (
+                          <li
+                            key={`${e.machine_id}-${e.hour_slot}-${i}`}
+                            className="flex flex-wrap gap-2 rounded border bg-muted/30 px-2 py-1"
+                          >
+                            <Badge variant="outline" className="text-[10px]">
+                              {m?.name ?? "—"}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[10px]">
+                              slot {e.hour_slot}
+                            </Badge>
+                            <span className="text-foreground">{e.observation}</span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function JustificationsCard({
+  machines,
+  areas,
+  goals,
+  entries,
+  justifications,
+  date,
+}: {
+  machines: Machine[];
+  areas: Area[];
+  goals: { machine_id: string; goal: number }[];
+  entries: { machine_id: string; quantity: number }[];
+  justifications: { machine_id: string; justification: string }[];
+  date: string;
+}) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const rows = machines
+    .map((m) => {
+      const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const realized = entries
+        .filter((e) => e.machine_id === m.id)
+        .reduce((s, e) => s + e.quantity, 0);
+      const just = justifications.find((j) => j.machine_id === m.id)?.justification ?? "";
+      return { machine: m, goal, realized, justification: just };
+    })
+    .filter((r) => (r.goal > 0 && r.realized < r.goal) || r.justification);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Justificativas de meta não cumprida</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <div className="text-sm text-muted-foreground">
+            Todas as metas foram cumpridas ou nenhuma meta registrada.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {areas.map((area) => {
+              const areaRows = rows.filter((r) => r.machine.area_id === area.id);
+              if (!areaRows.length) return null;
+              return (
+                <div key={area.id} className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {area.name}
+                  </div>
+                  {areaRows.map((r) => (
+                    <JustificationRow
+                      key={r.machine.id}
+                      machineName={r.machine.name}
+                      machineId={r.machine.id}
+                      goal={r.goal}
+                      realized={r.realized}
+                      current={r.justification}
+                      userId={user?.id ?? ""}
+                      date={date}
+                      onSaved={() =>
+                        qc.invalidateQueries({ queryKey: ["justifications", date] })
+                      }
+                    />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function JustificationRow({
+  machineName,
+  machineId,
+  goal,
+  realized,
+  current,
+  userId,
+  date,
+  onSaved,
+}: {
+  machineName: string;
+  machineId: string;
+  goal: number;
+  realized: number;
+  current: string;
+  userId: string;
+  date: string;
+  onSaved: () => void;
+}) {
+  const [val, setVal] = useState(current);
+  const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+  const save = async () => {
+    if (val.trim() === current.trim()) return;
+    if (!userId) return;
+    try {
+      await upsertJustification(machineId, date, val.trim(), userId);
+      toast.success("Justificativa salva");
+      onSaved();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao salvar justificativa");
+    }
+  };
+  return (
+    <div className="space-y-1 rounded-lg border bg-card p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium">{machineName}</span>
+        <Badge variant="outline" className="text-[10px]">
+          {realized} / {goal} ({pct}%)
+        </Badge>
+        {!current && goal > 0 && realized < goal && (
+          <Badge className="bg-destructive text-destructive-foreground text-[10px]">
+            justificativa pendente
+          </Badge>
+        )}
+      </div>
+      <Textarea
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={save}
+        placeholder="Justificativa para a meta não cumprida"
+        rows={2}
+        className="resize-none text-sm"
+      />
     </div>
   );
 }
