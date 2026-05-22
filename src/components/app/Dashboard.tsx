@@ -100,8 +100,8 @@ async function exportReportPdf({
 }) {
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const goalSlotsCount = goalSlots.length || 1;
-  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
+  const baseSlotsCount = getBaseGoalSlots(date).length || 1;
+  const totalMeta = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
   const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
   const totalPct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
   const totalDeviation = totalReal - totalMeta;
