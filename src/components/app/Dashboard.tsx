@@ -194,10 +194,11 @@ async function exportReportPdf({
     const leaderLabel = (leadersByArea[area.id] ?? []).join(", ") || "—";
     for (const m of ams) {
       const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const effGoal = effectiveDayGoal(goal, overtime, date);
       const realized = entries
         .filter((e) => e.machine_id === m.id)
         .reduce((s, e) => s + e.quantity, 0);
-      const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+      const pct = effGoal > 0 ? Math.round((realized / effGoal) * 100) : 0;
       const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim() ?? "—";
       const hourCells = slots.map((s) => {
         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
@@ -209,10 +210,10 @@ async function exportReportPdf({
         m.name,
         operator,
         ...hourCells,
-        goal > 0 ? String(Math.round(goal / goalSlotsCount)) : "—",
-        goal > 0 ? String(goal) : "—",
+        goal > 0 ? String(Math.round(goal / baseSlotsCount)) : "—",
+        effGoal > 0 ? String(effGoal) : "—",
         String(realized),
-        goal > 0 ? `${pct}%` : "—",
+        effGoal > 0 ? `${pct}%` : "—",
       ]);
     }
   }
@@ -237,11 +238,11 @@ async function exportReportPdf({
       const slotIdx = col - 4;
       if (slotIdx >= 0 && slotIdx < slots.length) {
         const row = heatBody[data.row.index];
-        const goalTotal = Number(row[4 + slots.length + 1]) || 0;
+        const metaPerHour = Number(row[4 + slots.length]) || 0;
         const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
         const val = data.cell.raw;
-        if (goalTotal > 0 && inGoal && val !== "—") {
-          const expected = goalTotal / goalSlotsCount;
+        if (metaPerHour > 0 && inGoal && val !== "—") {
+          const expected = metaPerHour;
           const q = Number(val);
           if (q >= expected) data.cell.styles.fillColor = [187, 247, 208];
           else if (q >= expected * 0.7) data.cell.styles.fillColor = [254, 240, 138];
