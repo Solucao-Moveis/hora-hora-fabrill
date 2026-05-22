@@ -13,7 +13,15 @@ import {
   type Area,
   type Machine,
 } from "@/lib/queries";
-import { todayIso, formatDateBR, LUNCH_LABEL, getGoalTimeSlots, getTotalMinutes, getApontamentoSlots } from "@/lib/time-slots";
+import {
+  todayIso,
+  formatDateBR,
+  LUNCH_LABEL,
+  getGoalTimeSlots,
+  getApontamentoSlots,
+  getBaseGoalSlots,
+  effectiveDayGoal,
+} from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
