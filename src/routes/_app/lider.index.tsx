@@ -8,12 +8,13 @@ import {
   fetchOperatorsForDate,
   fetchEntriesForDate,
   fetchJustificationsForDate,
+  fetchOvertime,
   upsertOperator,
   upsertEntry,
   upsertJustification,
   type Machine,
 } from "@/lib/queries";
-import { todayIso, formatDateBR, getApontamentoSlots } from "@/lib/time-slots";
+import { todayIso, formatDateBR, getApontamentoSlots, effectiveDayGoal } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,11 @@ function LiderPage() {
     queryFn: () => fetchJustificationsForDate(date, machineIds),
     enabled: machineIds.length > 0,
   });
+  const overtimeQ = useQuery({
+    queryKey: ["overtime", date],
+    queryFn: () => fetchOvertime(date),
+  });
+  const overtime = !!overtimeQ.data;
 
   if (!isLider) {
     return (
@@ -102,7 +108,11 @@ function LiderPage() {
                     machine={m}
                     date={date}
                     userId={user!.id}
-                    goal={goalsQ.data?.find((g) => g.machine_id === m.id)?.goal ?? 0}
+                    goal={effectiveDayGoal(
+                      goalsQ.data?.find((g) => g.machine_id === m.id)?.goal ?? 0,
+                      overtime,
+                      date,
+                    )}
                     operator={operatorsQ.data?.find((o) => o.machine_id === m.id)?.operator_name ?? ""}
                     entries={(entriesQ.data ?? []).filter((e) => e.machine_id === m.id)}
                     justification={
