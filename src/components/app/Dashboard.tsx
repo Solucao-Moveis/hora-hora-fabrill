@@ -18,6 +18,8 @@ import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -203,6 +205,28 @@ export function Dashboard({ restrictAreaIds }: Props) {
         <Badge variant="outline" className="h-10 items-center px-3">
           {formatDateBR(date)}
         </Badge>
+        {!restrictAreaIds && (
+          <Button
+            type="button"
+            variant="outline"
+            className="ml-auto h-10 gap-2"
+            onClick={() =>
+              exportReportCsv({
+                date,
+                areas: visibleAreas,
+                machines: filteredMachines,
+                goals,
+                entries,
+                operators,
+                justifications,
+                overtime,
+              })
+            }
+          >
+            <Download className="h-4 w-4" />
+            Exportar relatório
+          </Button>
+        )}
       </div>
 
       <KpiRow goals={goals} entries={entries} machines={filteredMachines} />
