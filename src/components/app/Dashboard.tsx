@@ -18,6 +18,8 @@ import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -44,6 +46,108 @@ type Props = {
 };
 
 const PIE_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
+
+function csvEscape(v: string | number): string {
+  const s = String(v ?? "");
+  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function exportReportCsv({
+  date,
+  areas,
+  machines,
+  goals,
+  entries,
+  operators,
+  justifications,
+  overtime,
+}: {
+  date: string;
+  areas: Area[];
+  machines: Machine[];
+  goals: { machine_id: string; goal: number }[];
+  entries: { machine_id: string; hour_slot: number; quantity: number; observation: string | null }[];
+  operators: { machine_id: string; operator_name: string }[];
+  justifications: { machine_id: string; justification: string }[];
+  overtime: boolean;
+}) {
+  const slots = getApontamentoSlots(date);
+  const goalSlots = getGoalTimeSlots(overtime, date);
+  const goalSlotsCount = goalSlots.length || 1;
+
+  const lines: string[] = [];
+  lines.push(`Relatório de Produção;${formatDateBR(date)}`);
+  lines.push(`Hora extra;${overtime ? "Sim (até 19h)" : "Não"}`);
+  lines.push("");
+
+  // Header
+  const header = [
+    "Área",
+    "Máquina",
+    "Operador",
+    ...slots.map((s) => s.label),
+    "Meta/h",
+    "Meta total",
+    "Realizado",
+    "% Meta",
+    "Justificativa",
+    "Observações",
+  ];
+  lines.push(header.map(csvEscape).join(";"));
+
+  for (const area of areas) {
+    const ams = machines.filter((m) => m.area_id === area.id);
+    for (const m of ams) {
+      const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const realized = entries
+        .filter((e) => e.machine_id === m.id)
+        .reduce((s, e) => s + e.quantity, 0);
+      const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+      const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim() ?? "";
+      const justif = justifications.find((j) => j.machine_id === m.id)?.justification ?? "";
+      const obs = entries
+        .filter((e) => e.machine_id === m.id && e.observation && e.observation.trim())
+        .map((e) => `${e.hour_slot}h: ${e.observation!.trim()}`)
+        .join(" | ");
+      const hourCells = slots.map((s) => {
+        const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
+        return e ? e.quantity : "";
+      });
+      const row = [
+        area.name,
+        m.name,
+        operator,
+        ...hourCells,
+        goal > 0 ? Math.round(goal / goalSlotsCount) : "",
+        goal || "",
+        realized,
+        goal > 0 ? `${pct}%` : "",
+        justif,
+        obs,
+      ];
+      lines.push(row.map(csvEscape).join(";"));
+    }
+  }
+
+  // Totals
+  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
+  const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
+  const totalPct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
+  lines.push("");
+  lines.push(["TOTAL", "", "", ...slots.map(() => ""), "", totalMeta, totalReal, `${totalPct}%`, "", ""].map(csvEscape).join(";"));
+
+  const csv = "\ufeff" + lines.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `relatorio-producao-${date}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export function Dashboard({ restrictAreaIds }: Props) {
   const [date, setDate] = useState(todayIso());
@@ -203,6 +307,28 @@ export function Dashboard({ restrictAreaIds }: Props) {
         <Badge variant="outline" className="h-10 items-center px-3">
           {formatDateBR(date)}
         </Badge>
+        {!restrictAreaIds && (
+          <Button
+            type="button"
+            variant="outline"
+            className="ml-auto h-10 gap-2"
+            onClick={() =>
+              exportReportCsv({
+                date,
+                areas: visibleAreas,
+                machines: filteredMachines,
+                goals,
+                entries,
+                operators,
+                justifications,
+                overtime,
+              })
+            }
+          >
+            <Download className="h-4 w-4" />
+            Exportar relatório
+          </Button>
+        )}
       </div>
 
       <KpiRow goals={goals} entries={entries} machines={filteredMachines} />
