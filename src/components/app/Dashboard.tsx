@@ -1038,7 +1038,7 @@ function Heatmap({
   }
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const goalSlotsCount = goalSlots.length;
+  const baseSlotsCount = getBaseGoalSlots(date).length || 1;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-xs">
