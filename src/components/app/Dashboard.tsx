@@ -1078,8 +1078,9 @@ function Heatmap({
                   </td>
                 </tr>
                 {ams.map((m) => {
-                  const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
-                  const expectedPerHour = goal / goalSlotsCount;
+                  const baseGoal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+                  const goal = effectiveDayGoal(baseGoal, overtime, date);
+                  const expectedPerHour = baseGoal / baseSlotsCount;
                   const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
                   const realized = entries
                     .filter((x) => x.machine_id === m.id)
