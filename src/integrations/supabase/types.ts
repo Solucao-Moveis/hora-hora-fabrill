@@ -102,6 +102,36 @@ export type Database = {
           },
         ]
       }
+      meta_justifications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          justification: string
+          justification_date: string
+          machine_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          justification: string
+          justification_date: string
+          machine_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          justification?: string
+          justification_date?: string
+          machine_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       overtime_days: {
         Row: {
           created_at: string

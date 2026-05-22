@@ -144,3 +144,45 @@ export async function setOvertime(date: string, enabled: boolean, user_id: strin
     );
   if (error) throw error;
 }
+
+export type MetaJustification = {
+  id: string;
+  machine_id: string;
+  justification_date: string;
+  justification: string;
+};
+
+export async function fetchJustificationsForDate(
+  date: string,
+  machineIds?: string[],
+): Promise<MetaJustification[]> {
+  let q = supabase
+    .from("meta_justifications")
+    .select("id,machine_id,justification_date,justification")
+    .eq("justification_date", date);
+  if (machineIds && machineIds.length) q = q.in("machine_id", machineIds);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as MetaJustification[];
+}
+
+export async function upsertJustification(
+  machine_id: string,
+  justification_date: string,
+  justification: string,
+  user_id: string,
+) {
+  const { error } = await supabase
+    .from("meta_justifications")
+    .upsert(
+      {
+        machine_id,
+        justification_date,
+        justification,
+        created_by: user_id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "machine_id,justification_date" },
+    );
+  if (error) throw error;
+}

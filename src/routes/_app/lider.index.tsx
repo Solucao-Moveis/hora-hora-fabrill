@@ -7,14 +7,17 @@ import {
   fetchGoalsForDate,
   fetchOperatorsForDate,
   fetchEntriesForDate,
+  fetchJustificationsForDate,
   upsertOperator,
   upsertEntry,
+  upsertJustification,
   type Machine,
 } from "@/lib/queries";
 import { todayIso, formatDateBR, getApontamentoSlots } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -50,6 +53,11 @@ function LiderPage() {
   const entriesQ = useQuery({
     queryKey: ["entries", date, machineIds],
     queryFn: () => fetchEntriesForDate(date, machineIds),
+    enabled: machineIds.length > 0,
+  });
+  const justifQ = useQuery({
+    queryKey: ["justifications", date, machineIds],
+    queryFn: () => fetchJustificationsForDate(date, machineIds),
     enabled: machineIds.length > 0,
   });
 
@@ -97,9 +105,13 @@ function LiderPage() {
                     goal={goalsQ.data?.find((g) => g.machine_id === m.id)?.goal ?? 0}
                     operator={operatorsQ.data?.find((o) => o.machine_id === m.id)?.operator_name ?? ""}
                     entries={(entriesQ.data ?? []).filter((e) => e.machine_id === m.id)}
+                    justification={
+                      justifQ.data?.find((j) => j.machine_id === m.id)?.justification ?? ""
+                    }
                     onChanged={() => {
                       qc.invalidateQueries({ queryKey: ["entries", date, machineIds] });
                       qc.invalidateQueries({ queryKey: ["operators", date, machineIds] });
+                      qc.invalidateQueries({ queryKey: ["justifications", date, machineIds] });
                     }}
                   />
                 ))}
@@ -119,6 +131,7 @@ function MachineCard({
   goal,
   operator,
   entries,
+  justification,
   onChanged,
 }: {
   machine: Machine;
@@ -127,10 +140,13 @@ function MachineCard({
   goal: number;
   operator: string;
   entries: { hour_slot: number; quantity: number; observation: string | null }[];
+  justification: string;
   onChanged: () => void;
 }) {
   const [op, setOp] = useState(operator);
   useEffect(() => setOp(operator), [operator]);
+  const [just, setJust] = useState(justification);
+  useEffect(() => setJust(justification), [justification]);
 
   const total = entries.reduce((s, e) => s + (e.quantity || 0), 0);
   const pct = goal > 0 ? Math.round((total / goal) * 100) : 0;
@@ -146,6 +162,20 @@ function MachineCard({
       toast.error(err.message ?? "Erro ao salvar operador");
     }
   };
+
+  const saveJustification = async () => {
+    if (just.trim() === justification.trim()) return;
+    try {
+      await upsertJustification(machine.id, date, just.trim(), userId);
+      toast.success("Justificativa salva");
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao salvar justificativa");
+    }
+  };
+
+  const metaNotMet = goal > 0 && total < goal;
 
   return (
     <Card className="overflow-hidden">
@@ -203,6 +233,27 @@ function MachineCard({
               />
             );
           })}
+        </div>
+        <div className="space-y-1">
+          <Label
+            className={cn(
+              "text-xs uppercase tracking-wide",
+              metaNotMet ? "text-destructive" : "text-muted-foreground",
+            )}
+          >
+            Justificativa (caso a meta do dia não seja cumprida)
+            {metaNotMet && !just.trim() && (
+              <span className="ml-2 normal-case">— pendente</span>
+            )}
+          </Label>
+          <Textarea
+            value={just}
+            onChange={(e) => setJust(e.target.value)}
+            onBlur={saveJustification}
+            placeholder="Ex.: parada por manutenção, falta de material, etc."
+            rows={2}
+            className="resize-none"
+          />
         </div>
       </CardContent>
     </Card>
