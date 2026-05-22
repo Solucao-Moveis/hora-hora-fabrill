@@ -622,7 +622,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         )}
       </div>
 
-      <KpiRow goals={goals} entries={entries} machines={filteredMachines} />
+      <KpiRow goals={goals} entries={entries} machines={filteredMachines} overtime={overtime} date={date} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -731,6 +731,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         goals={goals}
         entries={entries}
         justifications={justifications}
+        overtime={overtime}
         date={date}
       />
     </div>
