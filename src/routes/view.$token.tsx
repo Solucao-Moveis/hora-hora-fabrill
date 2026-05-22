@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchViewerDashboard } from "@/lib/viewer.functions";
-import { todayIso, formatDateBR, LUNCH_LABEL, getApontamentoSlots, getGoalTimeSlots } from "@/lib/time-slots";
+import { todayIso, formatDateBR, LUNCH_LABEL, getApontamentoSlots, getGoalTimeSlots, getBaseGoalSlots, effectiveDayGoal } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/app/DatePicker";
@@ -172,7 +172,7 @@ function HeatmapView({
   }
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const goalSlotsCount = goalSlots.length;
+  const baseSlotsCount = getBaseGoalSlots(date).length || 1;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-xs">
@@ -207,8 +207,9 @@ function HeatmapView({
                   </td>
                 </tr>
                 {ams.map((m) => {
-                  const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
-                  const expectedPerHour = goal / goalSlotsCount;
+                  const baseGoal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+                  const goal = effectiveDayGoal(baseGoal, overtime, date);
+                  const expectedPerHour = baseGoal / baseSlotsCount;
                   const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
                   const realized = entries.filter((x) => x.machine_id === m.id).reduce((s, x) => s + x.quantity, 0);
                   const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
