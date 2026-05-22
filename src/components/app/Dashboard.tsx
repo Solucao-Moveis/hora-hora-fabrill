@@ -13,7 +13,15 @@ import {
   type Area,
   type Machine,
 } from "@/lib/queries";
-import { todayIso, formatDateBR, LUNCH_LABEL, getGoalTimeSlots, getTotalMinutes, getApontamentoSlots } from "@/lib/time-slots";
+import {
+  todayIso,
+  formatDateBR,
+  LUNCH_LABEL,
+  getGoalTimeSlots,
+  getApontamentoSlots,
+  getBaseGoalSlots,
+  effectiveDayGoal,
+} from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -92,8 +100,8 @@ async function exportReportPdf({
 }) {
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const goalSlotsCount = goalSlots.length || 1;
-  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
+  const baseSlotsCount = getBaseGoalSlots(date).length || 1;
+  const totalMeta = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
   const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
   const totalPct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
   const totalDeviation = totalReal - totalMeta;
@@ -186,10 +194,11 @@ async function exportReportPdf({
     const leaderLabel = (leadersByArea[area.id] ?? []).join(", ") || "—";
     for (const m of ams) {
       const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const effGoal = effectiveDayGoal(goal, overtime, date);
       const realized = entries
         .filter((e) => e.machine_id === m.id)
         .reduce((s, e) => s + e.quantity, 0);
-      const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+      const pct = effGoal > 0 ? Math.round((realized / effGoal) * 100) : 0;
       const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim() ?? "—";
       const hourCells = slots.map((s) => {
         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
@@ -201,10 +210,10 @@ async function exportReportPdf({
         m.name,
         operator,
         ...hourCells,
-        goal > 0 ? String(Math.round(goal / goalSlotsCount)) : "—",
-        goal > 0 ? String(goal) : "—",
+        goal > 0 ? String(Math.round(goal / baseSlotsCount)) : "—",
+        effGoal > 0 ? String(effGoal) : "—",
         String(realized),
-        goal > 0 ? `${pct}%` : "—",
+        effGoal > 0 ? `${pct}%` : "—",
       ]);
     }
   }
@@ -229,11 +238,11 @@ async function exportReportPdf({
       const slotIdx = col - 4;
       if (slotIdx >= 0 && slotIdx < slots.length) {
         const row = heatBody[data.row.index];
-        const goalTotal = Number(row[4 + slots.length + 1]) || 0;
+        const metaPerHour = Number(row[4 + slots.length]) || 0;
         const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
         const val = data.cell.raw;
-        if (goalTotal > 0 && inGoal && val !== "—") {
-          const expected = goalTotal / goalSlotsCount;
+        if (metaPerHour > 0 && inGoal && val !== "—") {
+          const expected = metaPerHour;
           const q = Number(val);
           if (q >= expected) data.cell.styles.fillColor = [187, 247, 208];
           else if (q >= expected * 0.7) data.cell.styles.fillColor = [254, 240, 138];
@@ -259,7 +268,9 @@ async function exportReportPdf({
   for (const area of areas) {
     const ms = machines.filter((m) => m.area_id === area.id);
     const ids = ms.map((m) => m.id);
-    const g = goals.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.goal, 0);
+    const g = goals
+      .filter((x) => ids.includes(x.machine_id))
+      .reduce((s, x) => s + effectiveDayGoal(x.goal, overtime, date), 0);
     const r = entries.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.quantity, 0);
     const pct = g > 0 ? Math.round((r / g) * 100) : 0;
     if (g > 0) areaRows.push([area.name, g, r, `${pct}%`]);
@@ -354,17 +365,18 @@ async function exportReportPdf({
   const justifRows: (string | number)[][] = [];
   for (const m of machines) {
     const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+    const effGoal = effectiveDayGoal(goal, overtime, date);
     const realized = entries
       .filter((e) => e.machine_id === m.id)
       .reduce((s, e) => s + e.quantity, 0);
     const just = justifications.find((j) => j.machine_id === m.id)?.justification ?? "";
-    if ((goal > 0 && realized < goal) || just) {
+    if ((effGoal > 0 && realized < effGoal) || just) {
       const area = areas.find((a) => a.id === m.area_id);
-      const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+      const pct = effGoal > 0 ? Math.round((realized / effGoal) * 100) : 0;
       justifRows.push([
         area?.name ?? "—",
         m.name,
-        `${realized}/${goal} (${pct}%)`,
+        `${realized}/${effGoal} (${pct}%)`,
         just || "— pendente —",
       ]);
     }
@@ -483,11 +495,17 @@ export function Dashboard({ restrictAreaIds }: Props) {
   const leadersByArea = leadersQ.data ?? {};
   const apontamentoSlots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const totalMinutesForGoal = getTotalMinutes(overtime, date);
+  const baseSlots = getBaseGoalSlots(date);
+  const baseSlotsCount = baseSlots.length || 1;
+  const baseMinutes = baseSlots.reduce((s, t) => s + t.minutes, 0) || 1;
 
   // BAR DATA: meta vs realizado por máquina
   const barData = filteredMachines.map((m) => {
-    const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+    const goal = effectiveDayGoal(
+      goals.find((g) => g.machine_id === m.id)?.goal ?? 0,
+      overtime,
+      date,
+    );
     const realizado = entries
       .filter((e) => e.machine_id === m.id)
       .reduce((s, e) => s + e.quantity, 0);
@@ -495,7 +513,8 @@ export function Dashboard({ restrictAreaIds }: Props) {
   });
 
   // LINE DATA: produção acumulada ao longo das horas
-  const totalGoal = goals.reduce((s, g) => s + g.goal, 0);
+  const totalBaseGoal = goals.reduce((s, g) => s + g.goal, 0);
+  const totalEffGoal = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
   const lineData = apontamentoSlots.map((slot) => {
     const hourProd = entries
       .filter((e) => e.hour_slot === slot.index)
@@ -504,10 +523,10 @@ export function Dashboard({ restrictAreaIds }: Props) {
     let expected = 0;
     if (goalIdx >= 0) {
       const minutesUntilEnd = goalSlots.slice(0, goalIdx + 1).reduce((s, t) => s + t.minutes, 0);
-      expected = Math.round((totalGoal * minutesUntilEnd) / totalMinutesForGoal);
+      // meta/hora constante baseada na jornada regular
+      expected = Math.round((totalBaseGoal * minutesUntilEnd) / baseMinutes);
     } else {
-      // slot fora da meta (ex: hora extra desativada) — mantém último valor da meta
-      expected = totalGoal;
+      expected = totalEffGoal;
     }
     return { slot: slot.label, hourProd, expected };
   });
@@ -522,7 +541,9 @@ export function Dashboard({ restrictAreaIds }: Props) {
     .map((area) => {
       const ms = allMachines.filter((m) => m.area_id === area.id);
       const ids = ms.map((m) => m.id);
-      const g = goals.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.goal, 0);
+      const g = goals
+        .filter((x) => ids.includes(x.machine_id))
+        .reduce((s, x) => s + effectiveDayGoal(x.goal, overtime, date), 0);
       const r = entries.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.quantity, 0);
       const pct = g > 0 ? Math.round((r / g) * 100) : 0;
       return { name: area.name, value: pct, realizado: r, meta: g };
@@ -601,7 +622,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         )}
       </div>
 
-      <KpiRow goals={goals} entries={entries} machines={filteredMachines} />
+      <KpiRow goals={goals} entries={entries} machines={filteredMachines} overtime={overtime} date={date} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -624,7 +645,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         <Card>
           <CardHeader><CardTitle className="text-base">Produção acumulada vs meta horária</CardTitle></CardHeader>
           <CardContent>
-            <ChartWrap empty={totalGoal === 0 && acc === 0}>
+            <ChartWrap empty={totalEffGoal === 0 && acc === 0}>
               <LineChart data={lineDataAcc}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="hora" />
@@ -710,6 +731,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         goals={goals}
         entries={entries}
         justifications={justifications}
+        overtime={overtime}
         date={date}
       />
     </div>
@@ -786,6 +808,7 @@ function JustificationsCard({
   goals,
   entries,
   justifications,
+  overtime,
   date,
 }: {
   machines: Machine[];
@@ -793,13 +816,15 @@ function JustificationsCard({
   goals: { machine_id: string; goal: number }[];
   entries: { machine_id: string; quantity: number }[];
   justifications: { machine_id: string; justification: string }[];
+  overtime: boolean;
   date: string;
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const rows = machines
     .map((m) => {
-      const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const baseGoal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const goal = effectiveDayGoal(baseGoal, overtime, date);
       const realized = entries
         .filter((e) => e.machine_id === m.id)
         .reduce((s, e) => s + e.quantity, 0);
@@ -932,12 +957,16 @@ function KpiRow({
   goals,
   entries,
   machines,
+  overtime,
+  date,
 }: {
   goals: { machine_id: string; goal: number }[];
   entries: { machine_id: string; quantity: number }[];
   machines: Machine[];
+  overtime: boolean;
+  date: string;
 }) {
-  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
+  const totalMeta = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
   const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
   const pct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
   const desvio = totalReal - totalMeta;
@@ -1009,7 +1038,7 @@ function Heatmap({
   }
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
-  const goalSlotsCount = goalSlots.length;
+  const baseSlotsCount = getBaseGoalSlots(date).length || 1;
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[720px] text-xs">
@@ -1049,8 +1078,9 @@ function Heatmap({
                   </td>
                 </tr>
                 {ams.map((m) => {
-                  const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
-                  const expectedPerHour = goal / goalSlotsCount;
+                  const baseGoal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+                  const goal = effectiveDayGoal(baseGoal, overtime, date);
+                  const expectedPerHour = baseGoal / baseSlotsCount;
                   const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim();
                   const realized = entries
                     .filter((x) => x.machine_id === m.id)

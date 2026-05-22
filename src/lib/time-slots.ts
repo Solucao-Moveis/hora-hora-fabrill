@@ -54,6 +54,32 @@ export function getTotalMinutes(overtime: boolean, iso?: string): number {
   return getGoalTimeSlots(overtime, iso).reduce((s, t) => s + t.minutes, 0);
 }
 
+/**
+ * Slots que servem de base para a meta definida pelo PCP.
+ * A meta é sempre cadastrada para um dia sem hora extra (jornada regular),
+ * então o "meta/hora" é calculado dividindo a meta pelos slots base.
+ * Em sexta-feira a jornada é reduzida e a base segue essa jornada.
+ */
+export function getBaseGoalSlots(iso?: string): TimeSlot[] {
+  if (iso && isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  return REGULAR_TIME_SLOTS;
+}
+
+export function getBaseGoalMinutes(iso?: string): number {
+  return getBaseGoalSlots(iso).reduce((s, t) => s + t.minutes, 0);
+}
+
+/**
+ * Meta total efetiva do dia. Mantém a meta/hora constante e escala
+ * o total quando há hora extra (acrescentando as horas extras à mesma cadência).
+ */
+export function effectiveDayGoal(baseGoal: number, overtime: boolean, iso?: string): number {
+  const base = getBaseGoalSlots(iso).length;
+  if (base === 0) return baseGoal;
+  const actual = getGoalTimeSlots(overtime, iso).length;
+  return Math.round((baseGoal * actual) / base);
+}
+
 export const TOTAL_MINUTES = REGULAR_TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 540 (compat)
 
 export const LUNCH_LABEL = "12h–13h Almoço";
