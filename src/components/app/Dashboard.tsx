@@ -808,6 +808,7 @@ function JustificationsCard({
   goals,
   entries,
   justifications,
+  overtime,
   date,
 }: {
   machines: Machine[];
@@ -815,13 +816,15 @@ function JustificationsCard({
   goals: { machine_id: string; goal: number }[];
   entries: { machine_id: string; quantity: number }[];
   justifications: { machine_id: string; justification: string }[];
+  overtime: boolean;
   date: string;
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const rows = machines
     .map((m) => {
-      const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const baseGoal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+      const goal = effectiveDayGoal(baseGoal, overtime, date);
       const realized = entries
         .filter((e) => e.machine_id === m.id)
         .reduce((s, e) => s + e.quantity, 0);
