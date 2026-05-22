@@ -365,17 +365,18 @@ async function exportReportPdf({
   const justifRows: (string | number)[][] = [];
   for (const m of machines) {
     const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+    const effGoal = effectiveDayGoal(goal, overtime, date);
     const realized = entries
       .filter((e) => e.machine_id === m.id)
       .reduce((s, e) => s + e.quantity, 0);
     const just = justifications.find((j) => j.machine_id === m.id)?.justification ?? "";
-    if ((goal > 0 && realized < goal) || just) {
+    if ((effGoal > 0 && realized < effGoal) || just) {
       const area = areas.find((a) => a.id === m.area_id);
-      const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+      const pct = effGoal > 0 ? Math.round((realized / effGoal) * 100) : 0;
       justifRows.push([
         area?.name ?? "—",
         m.name,
-        `${realized}/${goal} (${pct}%)`,
+        `${realized}/${effGoal} (${pct}%)`,
         just || "— pendente —",
       ]);
     }
