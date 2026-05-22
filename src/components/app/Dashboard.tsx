@@ -954,12 +954,16 @@ function KpiRow({
   goals,
   entries,
   machines,
+  overtime,
+  date,
 }: {
   goals: { machine_id: string; goal: number }[];
   entries: { machine_id: string; quantity: number }[];
   machines: Machine[];
+  overtime: boolean;
+  date: string;
 }) {
-  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
+  const totalMeta = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
   const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
   const pct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
   const desvio = totalReal - totalMeta;
