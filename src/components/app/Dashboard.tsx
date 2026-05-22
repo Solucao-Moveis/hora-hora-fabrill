@@ -20,6 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import logoUrl from "@/assets/logo-solucao-moveis.jpg";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -47,13 +50,25 @@ type Props = {
 
 const PIE_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
 
-function csvEscape(v: string | number): string {
-  const s = String(v ?? "");
-  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+async function loadImageDataUrl(url: string): Promise<{ dataUrl: string; w: number; h: number }> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+  const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.width, h: img.height });
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+  return { dataUrl, ...dims };
 }
 
-function exportReportCsv({
+async function exportReportPdf({
   date,
   areas,
   machines,
@@ -75,27 +90,75 @@ function exportReportCsv({
   const slots = getApontamentoSlots(date);
   const goalSlots = getGoalTimeSlots(overtime, date);
   const goalSlotsCount = goalSlots.length || 1;
+  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
+  const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
+  const totalPct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
+  const totalDeviation = totalReal - totalMeta;
 
-  const lines: string[] = [];
-  lines.push(`Relatório de Produção;${formatDateBR(date)}`);
-  lines.push(`Hora extra;${overtime ? "Sim (até 19h)" : "Não"}`);
-  lines.push("");
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 32;
 
-  // Header
-  const header = [
+  // Header with logo
+  let cursorY = margin;
+  try {
+    const logo = await loadImageDataUrl(logoUrl);
+    const logoH = 42;
+    const logoW = (logo.w / logo.h) * logoH;
+    doc.addImage(logo.dataUrl, "JPEG", margin, cursorY, logoW, logoH);
+  } catch {
+    // ignore logo failures
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Relatório de Produção", pageW - margin, cursorY + 16, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Data: ${formatDateBR(date)}`, pageW - margin, cursorY + 32, { align: "right" });
+  doc.text(
+    `Hora extra: ${overtime ? "Sim (até 19h)" : "Não"}`,
+    pageW - margin,
+    cursorY + 46,
+    { align: "right" },
+  );
+  cursorY += 70;
+
+  // KPIs
+  autoTable(doc, {
+    startY: cursorY,
+    margin: { left: margin, right: margin },
+    head: [["Máquinas", "Meta total", "Realizado", "% Meta", "Desvio"]],
+    body: [[
+      String(machines.length),
+      String(totalMeta),
+      String(totalReal),
+      totalMeta > 0 ? `${totalPct}%` : "—",
+      `${totalDeviation > 0 ? "+" : ""}${totalDeviation}`,
+    ]],
+    theme: "grid",
+    headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+    styles: { fontSize: 10, halign: "center" },
+  });
+  cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
+
+  // Heatmap table per area
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Produção por hora", margin, cursorY);
+  cursorY += 8;
+
+  const heatHead = [
     "Área",
     "Máquina",
     "Operador",
     ...slots.map((s) => s.label),
     "Meta/h",
-    "Meta total",
-    "Realizado",
-    "% Meta",
-    "Justificativa",
-    "Observações",
+    "Meta",
+    "Real.",
+    "%",
   ];
-  lines.push(header.map(csvEscape).join(";"));
-
+  const heatBody: (string | number)[][] = [];
   for (const area of areas) {
     const ams = machines.filter((m) => m.area_id === area.id);
     for (const m of ams) {
@@ -104,49 +167,225 @@ function exportReportCsv({
         .filter((e) => e.machine_id === m.id)
         .reduce((s, e) => s + e.quantity, 0);
       const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
-      const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim() ?? "";
-      const justif = justifications.find((j) => j.machine_id === m.id)?.justification ?? "";
-      const obs = entries
-        .filter((e) => e.machine_id === m.id && e.observation && e.observation.trim())
-        .map((e) => `${e.hour_slot}h: ${e.observation!.trim()}`)
-        .join(" | ");
+      const operator = operators.find((o) => o.machine_id === m.id)?.operator_name?.trim() ?? "—";
       const hourCells = slots.map((s) => {
         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
-        return e ? e.quantity : "";
+        return e ? String(e.quantity) : "—";
       });
-      const row = [
+      heatBody.push([
         area.name,
         m.name,
         operator,
         ...hourCells,
-        goal > 0 ? Math.round(goal / goalSlotsCount) : "",
-        goal || "",
-        realized,
-        goal > 0 ? `${pct}%` : "",
-        justif,
-        obs,
-      ];
-      lines.push(row.map(csvEscape).join(";"));
+        goal > 0 ? String(Math.round(goal / goalSlotsCount)) : "—",
+        goal > 0 ? String(goal) : "—",
+        String(realized),
+        goal > 0 ? `${pct}%` : "—",
+      ]);
     }
   }
 
-  // Totals
-  const totalMeta = goals.reduce((s, g) => s + g.goal, 0);
-  const totalReal = entries.reduce((s, e) => s + e.quantity, 0);
-  const totalPct = totalMeta > 0 ? Math.round((totalReal / totalMeta) * 100) : 0;
-  lines.push("");
-  lines.push(["TOTAL", "", "", ...slots.map(() => ""), "", totalMeta, totalReal, `${totalPct}%`, "", ""].map(csvEscape).join(";"));
+  autoTable(doc, {
+    startY: cursorY,
+    margin: { left: margin, right: margin },
+    head: [heatHead],
+    body: heatBody,
+    theme: "grid",
+    headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold", fontSize: 8 },
+    styles: { fontSize: 7, halign: "center", cellPadding: 3 },
+    columnStyles: {
+      0: { halign: "left", cellWidth: 60 },
+      1: { halign: "left", cellWidth: 70 },
+      2: { halign: "left", cellWidth: 60 },
+    },
+    didParseCell: (data) => {
+      if (data.section !== "body") return;
+      const col = data.column.index;
+      const slotIdx = col - 3;
+      if (slotIdx >= 0 && slotIdx < slots.length) {
+        const row = heatBody[data.row.index];
+        const goalTotal = Number(row[3 + slots.length + 1]) || 0;
+        const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
+        const val = data.cell.raw;
+        if (goalTotal > 0 && inGoal && val !== "—") {
+          const expected = goalTotal / goalSlotsCount;
+          const q = Number(val);
+          if (q >= expected) data.cell.styles.fillColor = [187, 247, 208];
+          else if (q >= expected * 0.7) data.cell.styles.fillColor = [254, 240, 138];
+          else data.cell.styles.fillColor = [254, 202, 202];
+        }
+      }
+      if (col === heatHead.length - 1) {
+        const v = String(data.cell.raw);
+        if (v.endsWith("%")) {
+          const n = parseInt(v, 10);
+          if (n >= 100) data.cell.styles.textColor = [22, 163, 74];
+          else if (n >= 70) data.cell.styles.textColor = [202, 138, 4];
+          else data.cell.styles.textColor = [220, 38, 38];
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    },
+  });
+  cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
 
-  const csv = "\ufeff" + lines.join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `relatorio-producao-${date}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // % por área
+  const areaRows: (string | number)[][] = [];
+  for (const area of areas) {
+    const ms = machines.filter((m) => m.area_id === area.id);
+    const ids = ms.map((m) => m.id);
+    const g = goals.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.goal, 0);
+    const r = entries.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.quantity, 0);
+    const pct = g > 0 ? Math.round((r / g) * 100) : 0;
+    if (g > 0) areaRows.push([area.name, g, r, `${pct}%`]);
+  }
+  if (areaRows.length) {
+    if (cursorY > doc.internal.pageSize.getHeight() - 120) {
+      doc.addPage();
+      cursorY = margin;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("% de cumprimento por área", margin, cursorY);
+    cursorY += 8;
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      head: [["Área", "Meta", "Realizado", "% Meta"]],
+      body: areaRows,
+      theme: "grid",
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 9, halign: "center" },
+      columnStyles: { 0: { halign: "left" } },
+    });
+    cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
+  }
+
+  // Produção por operador
+  const opMap = new Map<string, number>();
+  entries.forEach((e) => {
+    const op = operators.find((o) => o.machine_id === e.machine_id)?.operator_name?.trim();
+    if (!op) return;
+    opMap.set(op, (opMap.get(op) ?? 0) + e.quantity);
+  });
+  const opRows = Array.from(opMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([n, v]) => [n, v]);
+  if (opRows.length) {
+    if (cursorY > doc.internal.pageSize.getHeight() - 120) {
+      doc.addPage();
+      cursorY = margin;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Produção por operador", margin, cursorY);
+    cursorY += 8;
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      head: [["Operador", "Produzido"]],
+      body: opRows,
+      theme: "grid",
+      headStyles: { fillColor: [124, 58, 237], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 9 },
+      columnStyles: { 1: { halign: "center" } },
+    });
+    cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
+  }
+
+  // Observações
+  const obsRows: (string | number)[][] = [];
+  entries
+    .filter((e) => e.observation && e.observation.trim())
+    .sort((a, b) => a.hour_slot - b.hour_slot)
+    .forEach((e) => {
+      const m = machines.find((x) => x.id === e.machine_id);
+      const area = areas.find((a) => a.id === m?.area_id);
+      obsRows.push([area?.name ?? "—", m?.name ?? "—", `${e.hour_slot}h`, e.observation!.trim()]);
+    });
+  if (obsRows.length) {
+    if (cursorY > doc.internal.pageSize.getHeight() - 120) {
+      doc.addPage();
+      cursorY = margin;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Observações dos apontamentos", margin, cursorY);
+    cursorY += 8;
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      head: [["Área", "Máquina", "Hora", "Observação"]],
+      body: obsRows,
+      theme: "grid",
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 9 },
+      columnStyles: { 3: { cellWidth: "auto" } },
+    });
+    cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
+  }
+
+  // Justificativas
+  const justifRows: (string | number)[][] = [];
+  for (const m of machines) {
+    const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
+    const realized = entries
+      .filter((e) => e.machine_id === m.id)
+      .reduce((s, e) => s + e.quantity, 0);
+    const just = justifications.find((j) => j.machine_id === m.id)?.justification ?? "";
+    if ((goal > 0 && realized < goal) || just) {
+      const area = areas.find((a) => a.id === m.area_id);
+      const pct = goal > 0 ? Math.round((realized / goal) * 100) : 0;
+      justifRows.push([
+        area?.name ?? "—",
+        m.name,
+        `${realized}/${goal} (${pct}%)`,
+        just || "— pendente —",
+      ]);
+    }
+  }
+  if (justifRows.length) {
+    if (cursorY > doc.internal.pageSize.getHeight() - 120) {
+      doc.addPage();
+      cursorY = margin;
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Justificativas de meta não cumprida", margin, cursorY);
+    cursorY += 8;
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      head: [["Área", "Máquina", "Realizado/Meta", "Justificativa"]],
+      body: justifRows,
+      theme: "grid",
+      headStyles: { fillColor: [220, 38, 38], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 9 },
+      columnStyles: { 2: { halign: "center" }, 3: { cellWidth: "auto" } },
+    });
+  }
+
+  // Footer page numbers
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(
+      `Página ${i} de ${totalPages}`,
+      pageW - margin,
+      doc.internal.pageSize.getHeight() - 12,
+      { align: "right" },
+    );
+    doc.text(
+      `Gerado em ${new Date().toLocaleString("pt-BR")}`,
+      margin,
+      doc.internal.pageSize.getHeight() - 12,
+    );
+  }
+
+  doc.save(`relatorio-producao-${date}.pdf`);
 }
 
 export function Dashboard({ restrictAreaIds }: Props) {
@@ -313,7 +552,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
             variant="outline"
             className="ml-auto h-10 gap-2"
             onClick={() =>
-              exportReportCsv({
+              exportReportPdf({
                 date,
                 areas: visibleAreas,
                 machines: filteredMachines,
