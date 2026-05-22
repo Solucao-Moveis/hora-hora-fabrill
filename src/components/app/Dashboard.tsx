@@ -145,6 +145,24 @@ async function exportReportPdf({
   });
   cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
 
+  // Líderes por área
+  const leaderRows = areas.map((a) => {
+    const names = leadersByArea[a.id] ?? [];
+    return [a.name, names.length ? names.join(", ") : "—"];
+  });
+  if (leaderRows.length) {
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      head: [["Área", "Líder"]],
+      body: leaderRows,
+      theme: "grid",
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 9 },
+    });
+    cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 16;
+  }
+
   // Heatmap table per area
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -153,6 +171,7 @@ async function exportReportPdf({
 
   const heatHead = [
     "Área",
+    "Líder",
     "Máquina",
     "Operador",
     ...slots.map((s) => s.label),
@@ -164,6 +183,7 @@ async function exportReportPdf({
   const heatBody: (string | number)[][] = [];
   for (const area of areas) {
     const ams = machines.filter((m) => m.area_id === area.id);
+    const leaderLabel = (leadersByArea[area.id] ?? []).join(", ") || "—";
     for (const m of ams) {
       const goal = goals.find((g) => g.machine_id === m.id)?.goal ?? 0;
       const realized = entries
@@ -177,6 +197,7 @@ async function exportReportPdf({
       });
       heatBody.push([
         area.name,
+        leaderLabel,
         m.name,
         operator,
         ...hourCells,
@@ -197,17 +218,18 @@ async function exportReportPdf({
     headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold", fontSize: 8 },
     styles: { fontSize: 7, halign: "center", cellPadding: 3 },
     columnStyles: {
-      0: { halign: "left", cellWidth: 60 },
-      1: { halign: "left", cellWidth: 70 },
-      2: { halign: "left", cellWidth: 60 },
+      0: { halign: "left", cellWidth: 55 },
+      1: { halign: "left", cellWidth: 60 },
+      2: { halign: "left", cellWidth: 65 },
+      3: { halign: "left", cellWidth: 55 },
     },
     didParseCell: (data) => {
       if (data.section !== "body") return;
       const col = data.column.index;
-      const slotIdx = col - 3;
+      const slotIdx = col - 4;
       if (slotIdx >= 0 && slotIdx < slots.length) {
         const row = heatBody[data.row.index];
-        const goalTotal = Number(row[3 + slots.length + 1]) || 0;
+        const goalTotal = Number(row[4 + slots.length + 1]) || 0;
         const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
         const val = data.cell.raw;
         if (goalTotal > 0 && inGoal && val !== "—") {
