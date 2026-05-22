@@ -268,7 +268,9 @@ async function exportReportPdf({
   for (const area of areas) {
     const ms = machines.filter((m) => m.area_id === area.id);
     const ids = ms.map((m) => m.id);
-    const g = goals.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.goal, 0);
+    const g = goals
+      .filter((x) => ids.includes(x.machine_id))
+      .reduce((s, x) => s + effectiveDayGoal(x.goal, overtime, date), 0);
     const r = entries.filter((x) => ids.includes(x.machine_id)).reduce((s, x) => s + x.quantity, 0);
     const pct = g > 0 ? Math.round((r / g) * 100) : 0;
     if (g > 0) areaRows.push([area.name, g, r, `${pct}%`]);
