@@ -38,6 +38,18 @@ export function isFriday(iso: string): boolean {
   return new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0).getDay() === 5;
 }
 
+/** Sábado ou domingo também possuem jornada reduzida (até 16h) */
+export function isWeekend(iso: string): boolean {
+  if (!iso) return false;
+  const [y, m, d] = iso.split("-").map(Number);
+  const day = new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0).getDay();
+  return day === 0 || day === 6;
+}
+
+function isShortDay(iso: string): boolean {
+  return isFriday(iso) || isWeekend(iso);
+}
+
 /** Slots disponíveis para apontamento conforme a data (sexta termina às 16h) */
 export function getApontamentoSlots(iso: string): TimeSlot[] {
   if (isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
