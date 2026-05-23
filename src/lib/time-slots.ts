@@ -38,15 +38,27 @@ export function isFriday(iso: string): boolean {
   return new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0).getDay() === 5;
 }
 
-/** Slots disponíveis para apontamento conforme a data (sexta termina às 16h) */
+/** Sábado ou domingo também possuem jornada reduzida (até 16h) */
+export function isWeekend(iso: string): boolean {
+  if (!iso) return false;
+  const [y, m, d] = iso.split("-").map(Number);
+  const day = new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0).getDay();
+  return day === 0 || day === 6;
+}
+
+function isShortDay(iso: string): boolean {
+  return isFriday(iso) || isWeekend(iso);
+}
+
+/** Slots disponíveis para apontamento conforme a data (sexta e fins de semana terminam às 16h) */
 export function getApontamentoSlots(iso: string): TimeSlot[] {
-  if (isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  if (isShortDay(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return ALL_TIME_SLOTS;
 }
 
 /** Slots válidos para cálculo de meta, conforme bandeira de hora extra */
 export function getGoalTimeSlots(overtime: boolean, iso?: string): TimeSlot[] {
-  if (iso && isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  if (iso && isShortDay(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return overtime ? ALL_TIME_SLOTS : REGULAR_TIME_SLOTS;
 }
 
@@ -58,10 +70,10 @@ export function getTotalMinutes(overtime: boolean, iso?: string): number {
  * Slots que servem de base para a meta definida pelo PCP.
  * A meta é sempre cadastrada para um dia sem hora extra (jornada regular),
  * então o "meta/hora" é calculado dividindo a meta pelos slots base.
- * Em sexta-feira a jornada é reduzida e a base segue essa jornada.
+ * Em sexta-feira e fins de semana a jornada é reduzida e a base segue essa jornada.
  */
 export function getBaseGoalSlots(iso?: string): TimeSlot[] {
-  if (iso && isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  if (iso && isShortDay(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return REGULAR_TIME_SLOTS;
 }
 
