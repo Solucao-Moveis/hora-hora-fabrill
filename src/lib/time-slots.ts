@@ -50,15 +50,15 @@ function isShortDay(iso: string): boolean {
   return isFriday(iso) || isWeekend(iso);
 }
 
-/** Slots disponíveis para apontamento conforme a data (sexta termina às 16h) */
+/** Slots disponíveis para apontamento conforme a data (sexta e fins de semana terminam às 16h) */
 export function getApontamentoSlots(iso: string): TimeSlot[] {
-  if (isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  if (isShortDay(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return ALL_TIME_SLOTS;
 }
 
 /** Slots válidos para cálculo de meta, conforme bandeira de hora extra */
 export function getGoalTimeSlots(overtime: boolean, iso?: string): TimeSlot[] {
-  if (iso && isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  if (iso && isShortDay(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return overtime ? ALL_TIME_SLOTS : REGULAR_TIME_SLOTS;
 }
 
