@@ -70,10 +70,10 @@ export function getTotalMinutes(overtime: boolean, iso?: string): number {
  * Slots que servem de base para a meta definida pelo PCP.
  * A meta é sempre cadastrada para um dia sem hora extra (jornada regular),
  * então o "meta/hora" é calculado dividindo a meta pelos slots base.
- * Em sexta-feira a jornada é reduzida e a base segue essa jornada.
+ * Em sexta-feira e fins de semana a jornada é reduzida e a base segue essa jornada.
  */
 export function getBaseGoalSlots(iso?: string): TimeSlot[] {
-  if (iso && isFriday(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
+  if (iso && isShortDay(iso)) return ALL_TIME_SLOTS.filter((s) => s.index <= 7);
   return REGULAR_TIME_SLOTS;
 }
 
