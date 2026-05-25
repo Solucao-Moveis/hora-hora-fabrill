@@ -1123,9 +1123,9 @@ function Heatmap({
                             </Fragment>
                           );
                         }
-                        const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 1;
+                        const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
                         const tone =
-                          goal === 1 || !inGoal
+                          goal === 0 || !inGoal
                             ? "neutral"
                             : ratio > 1.15
                             ? "exceed"
@@ -1159,7 +1159,7 @@ function Heatmap({
                       <td
                         className={cn(
                           "px-2 py-1 text-center font-bold",
-                          goal === 1
+                          goal === 0
                             ? "text-muted-foreground"
                             : pct > 115
                             ? "text-primary"
