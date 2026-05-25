@@ -1120,15 +1120,20 @@ function Heatmap({
                             </Fragment>
                           );
                         }
+                        const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
                         const tone =
-                          goal === 0
+                          goal === 1 && !inGoal
                             ? "neutral"
                             : !inGoal
                             ? "neutral"
-                            : e.quantity >= expectedPerHour
+                            : ratio >= 1.15
+                            ? "exceed"
+                            : ratio >= 1.0
                             ? "ok"
-                            : e.quantity >= expectedPerHour * 0.7
+                            : ratio >= 0.7
                             ? "warn"
+                            : ratio >= 0.1
+                            ? "caution"
                             : "bad";
                         return (
                           <Fragment key={`c-${s.index}`}>
