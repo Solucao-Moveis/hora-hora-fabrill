@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tansta
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Factory, LogOut, Target, ClipboardList, BarChart3, Users } from "lucide-react";
+import { Factory, LogOut, Target, ClipboardList, BarChart3, Users, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app")({
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { user, loading, isPcp, isLider, signOut, areas } = useAuth();
+  const { user, loading, isPcp, isLider, isQualidade, signOut, areas } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -27,7 +27,7 @@ function AppLayout() {
     );
   }
 
-  if (!isPcp && !isLider) {
+  if (!isPcp && !isLider && !isQualidade) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center space-y-4">
@@ -52,12 +52,15 @@ function AppLayout() {
         { to: "/pcp/metas", label: "Metas", icon: Target },
         { to: "/pcp/dashboard", label: "Dashboard", icon: BarChart3 },
         { to: "/pcp/relatorios", label: "Relatórios", icon: ClipboardList },
+        { to: "/pcp/desvios", label: "Desvios", icon: AlertTriangle },
         { to: "/pcp/usuarios", label: "Usuários", icon: Users },
       ]
-    : [
-        { to: "/lider", label: "Apontamento", icon: ClipboardList },
-        { to: "/lider/dashboard", label: "Dashboard", icon: BarChart3 },
-      ];
+    : isQualidade
+      ? [{ to: "/pcp/desvios", label: "Desvios de Produção", icon: AlertTriangle }]
+      : [
+          { to: "/lider", label: "Apontamento", icon: ClipboardList },
+          { to: "/lider/dashboard", label: "Dashboard", icon: BarChart3 },
+        ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,7 +73,7 @@ function AppLayout() {
             <div className="leading-tight">
               <div className="text-sm font-semibold">Produção Hora a Hora</div>
               <div className="text-[11px] text-muted-foreground">
-                {isPcp ? "PCP" : `Líder · ${areas.map((a) => a.name).join(", ") || "—"}`}
+                {isPcp ? "PCP" : isQualidade ? "Qualidade" : `Líder · ${areas.map((a) => a.name).join(", ") || "—"}`}
               </div>
             </div>
           </div>

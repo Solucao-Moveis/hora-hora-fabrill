@@ -17,6 +17,7 @@ import { Route as AppLiderIndexRouteImport } from './routes/_app/lider.index'
 import { Route as AppPcpUsuariosRouteImport } from './routes/_app/pcp/usuarios'
 import { Route as AppPcpRelatoriosRouteImport } from './routes/_app/pcp/relatorios'
 import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
+import { Route as AppPcpDesviosRouteImport } from './routes/_app/pcp/desvios'
 import { Route as AppPcpDashboardRouteImport } from './routes/_app/pcp/dashboard'
 import { Route as AppLiderDashboardRouteImport } from './routes/_app/lider.dashboard'
 
@@ -59,6 +60,11 @@ const AppPcpMetasRoute = AppPcpMetasRouteImport.update({
   path: '/pcp/metas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPcpDesviosRoute = AppPcpDesviosRouteImport.update({
+  id: '/pcp/desvios',
+  path: '/pcp/desvios',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPcpDashboardRoute = AppPcpDashboardRouteImport.update({
   id: '/pcp/dashboard',
   path: '/pcp/dashboard',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/view/$token': typeof ViewTokenRoute
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
+  '/pcp/desvios': typeof AppPcpDesviosRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
   '/pcp/usuarios': typeof AppPcpUsuariosRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/view/$token': typeof ViewTokenRoute
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
+  '/pcp/desvios': typeof AppPcpDesviosRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
   '/pcp/usuarios': typeof AppPcpUsuariosRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/view/$token': typeof ViewTokenRoute
   '/_app/lider/dashboard': typeof AppLiderDashboardRoute
   '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
+  '/_app/pcp/desvios': typeof AppPcpDesviosRoute
   '/_app/pcp/metas': typeof AppPcpMetasRoute
   '/_app/pcp/relatorios': typeof AppPcpRelatoriosRoute
   '/_app/pcp/usuarios': typeof AppPcpUsuariosRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/view/$token'
     | '/lider/dashboard'
     | '/pcp/dashboard'
+    | '/pcp/desvios'
     | '/pcp/metas'
     | '/pcp/relatorios'
     | '/pcp/usuarios'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/view/$token'
     | '/lider/dashboard'
     | '/pcp/dashboard'
+    | '/pcp/desvios'
     | '/pcp/metas'
     | '/pcp/relatorios'
     | '/pcp/usuarios'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/view/$token'
     | '/_app/lider/dashboard'
     | '/_app/pcp/dashboard'
+    | '/_app/pcp/desvios'
     | '/_app/pcp/metas'
     | '/_app/pcp/relatorios'
     | '/_app/pcp/usuarios'
@@ -207,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPcpMetasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pcp/desvios': {
+      id: '/_app/pcp/desvios'
+      path: '/pcp/desvios'
+      fullPath: '/pcp/desvios'
+      preLoaderRoute: typeof AppPcpDesviosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/pcp/dashboard': {
       id: '/_app/pcp/dashboard'
       path: '/pcp/dashboard'
@@ -227,6 +246,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppLiderDashboardRoute: typeof AppLiderDashboardRoute
   AppPcpDashboardRoute: typeof AppPcpDashboardRoute
+  AppPcpDesviosRoute: typeof AppPcpDesviosRoute
   AppPcpMetasRoute: typeof AppPcpMetasRoute
   AppPcpRelatoriosRoute: typeof AppPcpRelatoriosRoute
   AppPcpUsuariosRoute: typeof AppPcpUsuariosRoute
@@ -236,6 +256,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppLiderDashboardRoute: AppLiderDashboardRoute,
   AppPcpDashboardRoute: AppPcpDashboardRoute,
+  AppPcpDesviosRoute: AppPcpDesviosRoute,
   AppPcpMetasRoute: AppPcpMetasRoute,
   AppPcpRelatoriosRoute: AppPcpRelatoriosRoute,
   AppPcpUsuariosRoute: AppPcpUsuariosRoute,
@@ -253,13 +274,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

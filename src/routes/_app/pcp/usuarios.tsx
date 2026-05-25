@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/pcp/usuarios")({
 });
 
 type Profile = { id: string; email: string | null; full_name: string | null };
-type RoleRow = { user_id: string; role: "pcp" | "lider" };
+type RoleRow = { user_id: string; role: "pcp" | "lider" | "qualidade" };
 type UserAreaRow = { user_id: string; area_id: string };
 type ViewerToken = { id: string; token: string; name: string; active: boolean; created_at: string };
 
@@ -177,7 +177,7 @@ function UsuariosPage() {
   const data = usersQ.data;
   const areas = areasQ.data ?? [];
 
-  const setRole = async (userId: string, role: "pcp" | "lider", enabled: boolean) => {
+  const setRole = async (userId: string, role: "pcp" | "lider" | "qualidade", enabled: boolean) => {
     if (enabled) {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error && !error.message.includes("duplicate")) {
@@ -225,6 +225,7 @@ function UsuariosPage() {
           const userAreasIds = data.userAreas.filter((u) => u.user_id === p.id).map((u) => u.area_id);
           const isPcpRole = userRoles.includes("pcp");
           const isLiderRole = userRoles.includes("lider");
+          const isQualidadeRole = userRoles.includes("qualidade");
           return (
             <Card key={p.id}>
               <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
@@ -235,7 +236,8 @@ function UsuariosPage() {
                 <div className="flex gap-1">
                   {isPcpRole && <Badge>PCP</Badge>}
                   {isLiderRole && <Badge variant="secondary">Líder</Badge>}
-                  {!isPcpRole && !isLiderRole && <Badge variant="outline">Sem papel</Badge>}
+                  {isQualidadeRole && <Badge variant="secondary">Qualidade</Badge>}
+                  {!isPcpRole && !isLiderRole && !isQualidadeRole && <Badge variant="outline">Sem papel</Badge>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -253,6 +255,13 @@ function UsuariosPage() {
                     onClick={() => setRole(p.id, "lider", !isLiderRole)}
                   >
                     {isLiderRole ? "Remover Líder" : "Tornar Líder"}
+                  </Button>
+                  <Button
+                    variant={isQualidadeRole ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setRole(p.id, "qualidade", !isQualidadeRole)}
+                  >
+                    {isQualidadeRole ? "Remover Qualidade" : "Tornar Qualidade"}
                   </Button>
                 </div>
                 {isLiderRole && (

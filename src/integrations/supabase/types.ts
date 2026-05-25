@@ -159,6 +159,81 @@ export type Database = {
         }
         Relationships: []
       }
+      production_deviations: {
+        Row: {
+          action_plan: string | null
+          action_responsible: string | null
+          area_id: string
+          created_at: string
+          created_by: string | null
+          deviation: string
+          deviation_date: string
+          deviation_time: string
+          id: string
+          item_code: string
+          machine_id: string | null
+          operator_name: string | null
+          photos: string[]
+          piece_weight: number
+          quantity: number
+          total_weight: number | null
+          updated_at: string
+        }
+        Insert: {
+          action_plan?: string | null
+          action_responsible?: string | null
+          area_id: string
+          created_at?: string
+          created_by?: string | null
+          deviation: string
+          deviation_date: string
+          deviation_time: string
+          id?: string
+          item_code: string
+          machine_id?: string | null
+          operator_name?: string | null
+          photos?: string[]
+          piece_weight?: number
+          quantity?: number
+          total_weight?: number | null
+          updated_at?: string
+        }
+        Update: {
+          action_plan?: string | null
+          action_responsible?: string | null
+          area_id?: string
+          created_at?: string
+          created_by?: string | null
+          deviation?: string
+          deviation_date?: string
+          deviation_time?: string
+          id?: string
+          item_code?: string
+          machine_id?: string | null
+          operator_name?: string | null
+          photos?: string[]
+          piece_weight?: number
+          quantity?: number
+          total_weight?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_deviations_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_deviations_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_entries: {
         Row: {
           created_by: string | null
@@ -337,6 +412,7 @@ export type Database = {
         Returns: boolean
       }
       is_pcp: { Args: { _user_id: string }; Returns: boolean }
+      is_qualidade: { Args: { _user_id: string }; Returns: boolean }
       user_can_access_area: {
         Args: { _area_id: string; _user_id: string }
         Returns: boolean
@@ -347,7 +423,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "pcp" | "lider"
+      app_role: "pcp" | "lider" | "qualidade"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -475,7 +551,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["pcp", "lider"],
+      app_role: ["pcp", "lider", "qualidade"],
     },
   },
 } as const
