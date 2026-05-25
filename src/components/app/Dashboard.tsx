@@ -244,8 +244,11 @@ async function exportReportPdf({
         if (metaPerHour > 0 && inGoal && val !== "—") {
           const expected = metaPerHour;
           const q = Number(val);
-          if (q >= expected) data.cell.styles.fillColor = [187, 247, 208];
-          else if (q >= expected * 0.7) data.cell.styles.fillColor = [254, 240, 138];
+          const ratio = expected > 0 ? q / expected : 0;
+          if (ratio >= 1.15) data.cell.styles.fillColor = [191, 219, 254];
+          else if (ratio >= 1.0) data.cell.styles.fillColor = [187, 247, 208];
+          else if (ratio >= 0.7) data.cell.styles.fillColor = [254, 240, 138];
+          else if (ratio >= 0.1) data.cell.styles.fillColor = [254, 215, 170];
           else data.cell.styles.fillColor = [254, 202, 202];
         }
       }
@@ -1120,15 +1123,20 @@ function Heatmap({
                             </Fragment>
                           );
                         }
+                        const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
                         const tone =
                           goal === 0
                             ? "neutral"
                             : !inGoal
                             ? "neutral"
-                            : e.quantity >= expectedPerHour
+                            : ratio >= 1.15
+                            ? "exceed"
+                            : ratio >= 1.0
                             ? "ok"
-                            : e.quantity >= expectedPerHour * 0.7
+                            : ratio >= 0.7
                             ? "warn"
+                            : ratio >= 0.1
+                            ? "caution"
                             : "bad";
                         return (
                           <Fragment key={`c-${s.index}`}>
@@ -1178,13 +1186,15 @@ function Heatmap({
   );
 }
 
-function Cell2({ tone, value }: { tone: "ok" | "warn" | "bad" | "empty" | "neutral"; value?: number }) {
+function Cell2({ tone, value }: { tone: "ok" | "warn" | "bad" | "empty" | "neutral" | "caution" | "exceed"; value?: number }) {
   const map = {
     ok: "bg-success text-success-foreground",
     warn: "bg-warning text-warning-foreground",
     bad: "bg-destructive text-destructive-foreground",
     empty: "bg-muted text-muted-foreground border border-dashed",
     neutral: "bg-secondary text-secondary-foreground",
+    caution: "bg-caution text-caution-foreground",
+    exceed: "bg-exceed text-exceed-foreground",
   } as const;
   return (
     <div className={cn("mx-auto flex h-7 w-10 items-center justify-center rounded text-[11px] font-bold", map[tone])}>
