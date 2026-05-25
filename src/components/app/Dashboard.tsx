@@ -244,8 +244,11 @@ async function exportReportPdf({
         if (metaPerHour > 0 && inGoal && val !== "—") {
           const expected = metaPerHour;
           const q = Number(val);
-          if (q >= expected) data.cell.styles.fillColor = [187, 247, 208];
-          else if (q >= expected * 0.7) data.cell.styles.fillColor = [254, 240, 138];
+          const ratio = expected > 0 ? q / expected : 0;
+          if (ratio >= 1.15) data.cell.styles.fillColor = [191, 219, 254];
+          else if (ratio >= 1.0) data.cell.styles.fillColor = [187, 247, 208];
+          else if (ratio >= 0.7) data.cell.styles.fillColor = [254, 240, 138];
+          else if (ratio >= 0.1) data.cell.styles.fillColor = [254, 215, 170];
           else data.cell.styles.fillColor = [254, 202, 202];
         }
       }
