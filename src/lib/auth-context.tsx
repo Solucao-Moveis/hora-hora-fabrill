@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type Role = "pcp" | "lider";
+export type Role = "pcp" | "lider" | "qualidade";
 
 export type AreaRef = { id: string; name: string; slug: string };
 
@@ -14,6 +14,7 @@ type AuthContextValue = {
   areas: AreaRef[];
   isPcp: boolean;
   isLider: boolean;
+  isQualidade: boolean;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -74,10 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isPcp = roles.includes("pcp");
   const isLider = roles.includes("lider");
+  const isQualidade = roles.includes("qualidade");
 
   return (
     <AuthContext.Provider
-      value={{ session, user, loading, roles, areas, isPcp, isLider, refresh, signOut }}
+      value={{ session, user, loading, roles, areas, isPcp, isLider, isQualidade, refresh, signOut }}
     >
       {children}
     </AuthContext.Provider>
