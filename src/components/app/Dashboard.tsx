@@ -1122,7 +1122,7 @@ function Heatmap({
                         }
                         const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
                         const tone =
-                          goal === 1 && !inGoal
+                          goal === 0
                             ? "neutral"
                             : !inGoal
                             ? "neutral"
