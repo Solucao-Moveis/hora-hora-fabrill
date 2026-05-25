@@ -245,10 +245,9 @@ async function exportReportPdf({
           const expected = metaPerHour;
           const q = Number(val);
           const ratio = expected > 0 ? q / expected : 0;
-          if (ratio >= 1.15) data.cell.styles.fillColor = [191, 219, 254];
+          if (ratio > 1.15) data.cell.styles.fillColor = [191, 219, 254];
           else if (ratio >= 1.0) data.cell.styles.fillColor = [187, 247, 208];
-          else if (ratio >= 0.7) data.cell.styles.fillColor = [254, 240, 138];
-          else if (ratio >= 0.1) data.cell.styles.fillColor = [254, 215, 170];
+          else if (ratio >= 0.9) data.cell.styles.fillColor = [254, 240, 138];
           else data.cell.styles.fillColor = [254, 202, 202];
         }
       }
@@ -256,8 +255,9 @@ async function exportReportPdf({
         const v = String(data.cell.raw);
         if (v.endsWith("%")) {
           const n = parseInt(v, 10);
-          if (n >= 100) data.cell.styles.textColor = [22, 163, 74];
-          else if (n >= 70) data.cell.styles.textColor = [202, 138, 4];
+          if (n > 115) data.cell.styles.textColor = [59, 130, 246];
+          else if (n >= 100) data.cell.styles.textColor = [22, 163, 74];
+          else if (n >= 90) data.cell.styles.textColor = [202, 138, 4];
           else data.cell.styles.textColor = [220, 38, 38];
           data.cell.styles.fontStyle = "bold";
         }
@@ -981,7 +981,7 @@ function KpiRow({
       <Kpi
         label="% Meta"
         value={`${pct}%`}
-        tone={pct >= 100 ? "success" : pct >= 70 ? "warning" : "destructive"}
+        tone={pct >= 100 ? "success" : pct >= 90 ? "warning" : "destructive"}
         sub={`Desvio: ${desvio > 0 ? "+" : ""}${desvio}`}
       />
     </div>
@@ -1125,18 +1125,14 @@ function Heatmap({
                         }
                         const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
                         const tone =
-                          goal === 0
+                          goal === 0 || !inGoal
                             ? "neutral"
-                            : !inGoal
-                            ? "neutral"
-                            : ratio >= 1.15
+                            : ratio > 1.15
                             ? "exceed"
                             : ratio >= 1.0
                             ? "ok"
-                            : ratio >= 0.7
+                            : ratio >= 0.9
                             ? "warn"
-                            : ratio >= 0.1
-                            ? "caution"
                             : "bad";
                         return (
                           <Fragment key={`c-${s.index}`}>
@@ -1165,9 +1161,11 @@ function Heatmap({
                           "px-2 py-1 text-center font-bold",
                           goal === 0
                             ? "text-muted-foreground"
+                            : pct > 115
+                            ? "text-primary"
                             : pct >= 100
                             ? "text-success"
-                            : pct >= 70
+                            : pct >= 90
                             ? "text-warning"
                             : "text-destructive",
                         )}
@@ -1186,14 +1184,13 @@ function Heatmap({
   );
 }
 
-function Cell2({ tone, value }: { tone: "ok" | "warn" | "bad" | "empty" | "neutral" | "caution" | "exceed"; value?: number }) {
+function Cell2({ tone, value }: { tone: "ok" | "warn" | "bad" | "empty" | "neutral" | "exceed"; value?: number }) {
   const map = {
     ok: "bg-success text-success-foreground",
     warn: "bg-warning text-warning-foreground",
     bad: "bg-destructive text-destructive-foreground",
     empty: "bg-muted text-muted-foreground border border-dashed",
     neutral: "bg-secondary text-secondary-foreground",
-    caution: "bg-caution text-caution-foreground",
     exceed: "bg-exceed text-exceed-foreground",
   } as const;
   return (
