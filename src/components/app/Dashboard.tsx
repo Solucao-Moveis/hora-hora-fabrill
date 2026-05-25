@@ -1183,13 +1183,15 @@ function Heatmap({
   );
 }
 
-function Cell2({ tone, value }: { tone: "ok" | "warn" | "bad" | "empty" | "neutral"; value?: number }) {
+function Cell2({ tone, value }: { tone: "ok" | "warn" | "bad" | "empty" | "neutral" | "caution" | "exceed"; value?: number }) {
   const map = {
     ok: "bg-success text-success-foreground",
     warn: "bg-warning text-warning-foreground",
     bad: "bg-destructive text-destructive-foreground",
     empty: "bg-muted text-muted-foreground border border-dashed",
     neutral: "bg-secondary text-secondary-foreground",
+    caution: "bg-caution text-caution-foreground",
+    exceed: "bg-exceed text-exceed-foreground",
   } as const;
   return (
     <div className={cn("mx-auto flex h-7 w-10 items-center justify-center rounded text-[11px] font-bold", map[tone])}>
