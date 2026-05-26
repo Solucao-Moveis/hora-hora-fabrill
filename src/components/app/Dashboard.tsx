@@ -21,6 +21,7 @@ import {
   getApontamentoSlots,
   getBaseGoalSlots,
   effectiveDayGoal,
+  expectedForSlot,
 } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
