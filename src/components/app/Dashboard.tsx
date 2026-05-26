@@ -245,18 +245,20 @@ async function exportReportPdf({
           const expected = metaPerHour;
           const q = Number(val);
           const ratio = expected > 0 ? q / expected : 0;
-          if (ratio >= 0.3) data.cell.styles.fillColor = [191, 219, 254];
+          if (ratio > 1.30) data.cell.styles.fillColor = [191, 219, 254];
+          else if (ratio >= 1.00) data.cell.styles.fillColor = [134, 239, 172];
+          else if (ratio >= 0.90) data.cell.styles.fillColor = [253, 224, 71];
           else data.cell.styles.fillColor = [254, 202, 202];
         }
       }
       if (col === heatHead.length - 1) {
-        const v = String(data.cell.raw);
-        if (v.endsWith("%")) {
-          const n = parseInt(v, 10);
-          if (n > 115) data.cell.styles.textColor = [59, 130, 246];
-          else if (n >= 100) data.cell.styles.textColor = [22, 163, 74];
-          else if (n >= 90) data.cell.styles.textColor = [202, 138, 4];
-          else data.cell.styles.textColor = [220, 38, 38];
+          const v = String(data.cell.raw);
+          if (v.endsWith("%")) {
+            const n = parseInt(v, 10);
+            if (n > 130) data.cell.styles.textColor = [59, 130, 246];
+            else if (n >= 100) data.cell.styles.textColor = [22, 163, 74];
+            else if (n >= 90) data.cell.styles.textColor = [202, 138, 4];
+            else data.cell.styles.textColor = [220, 38, 38];
           data.cell.styles.fontStyle = "bold";
         }
       }
@@ -1125,8 +1127,12 @@ function Heatmap({
                         const tone =
                           goal === 0 || !inGoal
                             ? "neutral"
-                            : ratio >= 0.3
+                            : ratio > 1.30
                             ? "exceed"
+                            : ratio >= 1.00
+                            ? "ok"
+                            : ratio >= 0.90
+                            ? "warn"
                             : "bad";
                         return (
                           <Fragment key={`c-${s.index}`}>
@@ -1155,7 +1161,7 @@ function Heatmap({
                           "px-2 py-1 text-center font-bold",
                           goal === 0
                             ? "text-muted-foreground"
-                            : pct > 115
+                            : pct > 130
                             ? "text-primary"
                             : pct >= 100
                             ? "text-success"
