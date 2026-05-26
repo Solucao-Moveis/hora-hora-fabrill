@@ -92,6 +92,24 @@ export function effectiveDayGoal(baseGoal: number, overtime: boolean, iso?: stri
   return Math.round((baseGoal * actual) / base);
 }
 
+/**
+ * Meta esperada para um slot específico.
+ * Regra: o slot das 8h (index 0) recebe metade da meta/hora padrão;
+ * a metade economizada é distribuída igualmente entre os demais slots base.
+ * Slots fora da jornada base (hora extra) usam a meta/hora padrão.
+ */
+export function expectedForSlot(baseGoal: number, slotIndex: number, iso?: string): number {
+  const baseSlots = getBaseGoalSlots(iso);
+  const n = baseSlots.length;
+  if (n === 0 || baseGoal <= 0) return 0;
+  const hourly = baseGoal / n;
+  const isBase = baseSlots.some((s) => s.index === slotIndex);
+  if (!isBase) return hourly;
+  if (slotIndex === 0) return hourly / 2;
+  if (n <= 1) return hourly / 2;
+  return hourly + (hourly / 2) / (n - 1);
+}
+
 export const TOTAL_MINUTES = REGULAR_TIME_SLOTS.reduce((s, t) => s + t.minutes, 0); // 540 (compat)
 
 export const LUNCH_LABEL = "12h–13h Almoço";

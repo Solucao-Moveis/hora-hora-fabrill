@@ -21,6 +21,7 @@ import {
   getApontamentoSlots,
   getBaseGoalSlots,
   effectiveDayGoal,
+  expectedForSlot,
 } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DatePicker } from "@/components/app/DatePicker";
@@ -189,6 +190,7 @@ async function exportReportPdf({
     "%",
   ];
   const heatBody: (string | number)[][] = [];
+  const heatRowBaseGoals: number[] = [];
   for (const area of areas) {
     const ams = machines.filter((m) => m.area_id === area.id);
     const leaderLabel = (leadersByArea[area.id] ?? []).join(", ") || "—";
@@ -215,6 +217,7 @@ async function exportReportPdf({
         String(realized),
         effGoal > 0 ? `${pct}%` : "—",
       ]);
+      heatRowBaseGoals.push(goal);
     }
   }
 
@@ -237,12 +240,11 @@ async function exportReportPdf({
       const col = data.column.index;
       const slotIdx = col - 4;
       if (slotIdx >= 0 && slotIdx < slots.length) {
-        const row = heatBody[data.row.index];
-        const metaPerHour = Number(row[4 + slots.length]) || 0;
+        const baseGoal = heatRowBaseGoals[data.row.index] ?? 0;
         const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
         const val = data.cell.raw;
-        if (metaPerHour > 0 && inGoal && val !== "—") {
-          const expected = metaPerHour;
+        if (baseGoal > 0 && inGoal && val !== "—") {
+          const expected = expectedForSlot(baseGoal, slots[slotIdx].index, date);
           const q = Number(val);
           const ratio = expected > 0 ? q / expected : 0;
           if (ratio > 1.30) data.cell.styles.fillColor = [191, 219, 254];
@@ -500,7 +502,6 @@ export function Dashboard({ restrictAreaIds }: Props) {
   const goalSlots = getGoalTimeSlots(overtime, date);
   const baseSlots = getBaseGoalSlots(date);
   const baseSlotsCount = baseSlots.length || 1;
-  const baseMinutes = baseSlots.reduce((s, t) => s + t.minutes, 0) || 1;
 
   // BAR DATA: meta vs realizado por máquina
   const barData = filteredMachines.map((m) => {
@@ -518,19 +519,20 @@ export function Dashboard({ restrictAreaIds }: Props) {
   // LINE DATA: produção acumulada ao longo das horas
   const totalBaseGoal = goals.reduce((s, g) => s + g.goal, 0);
   const totalEffGoal = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
+  // Meta esperada acumulada por slot (considerando a regra das 8h)
+  let cumExpected = 0;
+  const expectedBySlotIndex = new Map<number, number>();
+  for (const gs of goalSlots) {
+    cumExpected += expectedForSlot(totalBaseGoal, gs.index, date);
+    expectedBySlotIndex.set(gs.index, cumExpected);
+  }
   const lineData = apontamentoSlots.map((slot) => {
     const hourProd = entries
       .filter((e) => e.hour_slot === slot.index)
       .reduce((s, e) => s + e.quantity, 0);
-    const goalIdx = goalSlots.findIndex((g) => g.index === slot.index);
-    let expected = 0;
-    if (goalIdx >= 0) {
-      const minutesUntilEnd = goalSlots.slice(0, goalIdx + 1).reduce((s, t) => s + t.minutes, 0);
-      // meta/hora constante baseada na jornada regular
-      expected = Math.round((totalBaseGoal * minutesUntilEnd) / baseMinutes);
-    } else {
-      expected = totalEffGoal;
-    }
+    const expected = expectedBySlotIndex.has(slot.index)
+      ? Math.round(expectedBySlotIndex.get(slot.index)!)
+      : Math.round(totalEffGoal);
     return { slot: slot.label, hourProd, expected };
   });
   let acc = 0;
@@ -1100,6 +1102,7 @@ function Heatmap({
                       {slots.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         const inGoal = goalSlots.some((g) => g.index === s.index);
+                        const slotExpected = expectedForSlot(baseGoal, s.index, date);
                         const lunchCell = i === 5 ? (
                           <td key={`lunch-${m.id}`} className="bg-muted/40 px-1 py-1 text-center text-[10px] text-muted-foreground">
                             almoço
@@ -1113,7 +1116,7 @@ function Heatmap({
                                 <Cell2 tone="empty" />
                                 {goal > 0 && inGoal && (
                                   <div className="mt-0.5 text-[9px] text-muted-foreground">
-                                    meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                    meta {Math.round(slotExpected)}
                                   </div>
                                 )}
                                 {!inGoal && (
@@ -1123,7 +1126,7 @@ function Heatmap({
                             </Fragment>
                           );
                         }
-                        const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
+                        const ratio = slotExpected > 0 ? e.quantity / slotExpected : 0;
                         const tone =
                           goal === 0 || !inGoal
                             ? "neutral"
@@ -1141,7 +1144,7 @@ function Heatmap({
                               <Cell2 tone={tone} value={e.quantity} />
                               {goal > 0 && inGoal && (
                                 <div className="mt-0.5 text-[9px] text-muted-foreground">
-                                  meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                  meta {Math.round(slotExpected)}
                                 </div>
                               )}
                               {!inGoal && (
