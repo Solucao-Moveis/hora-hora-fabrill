@@ -502,7 +502,6 @@ export function Dashboard({ restrictAreaIds }: Props) {
   const goalSlots = getGoalTimeSlots(overtime, date);
   const baseSlots = getBaseGoalSlots(date);
   const baseSlotsCount = baseSlots.length || 1;
-  const baseMinutes = baseSlots.reduce((s, t) => s + t.minutes, 0) || 1;
 
   // BAR DATA: meta vs realizado por máquina
   const barData = filteredMachines.map((m) => {
