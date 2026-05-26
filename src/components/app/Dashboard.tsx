@@ -520,19 +520,20 @@ export function Dashboard({ restrictAreaIds }: Props) {
   // LINE DATA: produção acumulada ao longo das horas
   const totalBaseGoal = goals.reduce((s, g) => s + g.goal, 0);
   const totalEffGoal = goals.reduce((s, g) => s + effectiveDayGoal(g.goal, overtime, date), 0);
+  // Meta esperada acumulada por slot (considerando a regra das 8h)
+  let cumExpected = 0;
+  const expectedBySlotIndex = new Map<number, number>();
+  for (const gs of goalSlots) {
+    cumExpected += expectedForSlot(totalBaseGoal, gs.index, date);
+    expectedBySlotIndex.set(gs.index, cumExpected);
+  }
   const lineData = apontamentoSlots.map((slot) => {
     const hourProd = entries
       .filter((e) => e.hour_slot === slot.index)
       .reduce((s, e) => s + e.quantity, 0);
-    const goalIdx = goalSlots.findIndex((g) => g.index === slot.index);
-    let expected = 0;
-    if (goalIdx >= 0) {
-      const minutesUntilEnd = goalSlots.slice(0, goalIdx + 1).reduce((s, t) => s + t.minutes, 0);
-      // meta/hora constante baseada na jornada regular
-      expected = Math.round((totalBaseGoal * minutesUntilEnd) / baseMinutes);
-    } else {
-      expected = totalEffGoal;
-    }
+    const expected = expectedBySlotIndex.has(slot.index)
+      ? Math.round(expectedBySlotIndex.get(slot.index)!)
+      : Math.round(totalEffGoal);
     return { slot: slot.label, hourProd, expected };
   });
   let acc = 0;
