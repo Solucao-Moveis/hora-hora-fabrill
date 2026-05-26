@@ -244,9 +244,10 @@ async function exportReportPdf({
         const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
         const val = data.cell.raw;
         if (baseGoal > 0 && inGoal && val !== "—") {
-          const expected = expectedForSlot(baseGoal, slots[slotIdx].index, date);
-          const q = Number(val);
-          const ratio = expected > 0 ? q / expected : 0;
+           const expected = expectedForSlot(baseGoal, slots[slotIdx].index, date);
+           const displayedMeta = Math.max(1, Math.round(expected));
+           const q = Number(val);
+           const ratio = displayedMeta > 0 ? q / displayedMeta : 0;
           if (ratio > 1.30) data.cell.styles.fillColor = [191, 219, 254];
           else if (ratio >= 1.00) data.cell.styles.fillColor = [134, 239, 172];
           else if (ratio >= 0.90) data.cell.styles.fillColor = [253, 224, 71];
@@ -1126,7 +1127,8 @@ function Heatmap({
                             </Fragment>
                           );
                         }
-                        const ratio = slotExpected > 0 ? e.quantity / slotExpected : 0;
+                        const displayedMeta = Math.max(1, Math.round(slotExpected));
+                        const ratio = displayedMeta > 0 ? e.quantity / displayedMeta : 0;
                         const tone =
                           goal === 0 || !inGoal
                             ? "neutral"
