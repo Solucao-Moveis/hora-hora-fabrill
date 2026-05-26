@@ -190,6 +190,7 @@ async function exportReportPdf({
     "%",
   ];
   const heatBody: (string | number)[][] = [];
+  const heatRowBaseGoals: number[] = [];
   for (const area of areas) {
     const ams = machines.filter((m) => m.area_id === area.id);
     const leaderLabel = (leadersByArea[area.id] ?? []).join(", ") || "—";
@@ -216,6 +217,7 @@ async function exportReportPdf({
         String(realized),
         effGoal > 0 ? `${pct}%` : "—",
       ]);
+      heatRowBaseGoals.push(goal);
     }
   }
 
@@ -238,12 +240,11 @@ async function exportReportPdf({
       const col = data.column.index;
       const slotIdx = col - 4;
       if (slotIdx >= 0 && slotIdx < slots.length) {
-        const row = heatBody[data.row.index];
-        const metaPerHour = Number(row[4 + slots.length]) || 0;
+        const baseGoal = heatRowBaseGoals[data.row.index] ?? 0;
         const inGoal = goalSlots.some((g) => g.index === slots[slotIdx].index);
         const val = data.cell.raw;
-        if (metaPerHour > 0 && inGoal && val !== "—") {
-          const expected = metaPerHour;
+        if (baseGoal > 0 && inGoal && val !== "—") {
+          const expected = expectedForSlot(baseGoal, slots[slotIdx].index, date);
           const q = Number(val);
           const ratio = expected > 0 ? q / expected : 0;
           if (ratio > 1.30) data.cell.styles.fillColor = [191, 219, 254];
