@@ -1102,6 +1102,7 @@ function Heatmap({
                       {slots.map((s, i) => {
                         const e = entries.find((x) => x.machine_id === m.id && x.hour_slot === s.index);
                         const inGoal = goalSlots.some((g) => g.index === s.index);
+                        const slotExpected = expectedForSlot(baseGoal, s.index, date);
                         const lunchCell = i === 5 ? (
                           <td key={`lunch-${m.id}`} className="bg-muted/40 px-1 py-1 text-center text-[10px] text-muted-foreground">
                             almoço
@@ -1115,7 +1116,7 @@ function Heatmap({
                                 <Cell2 tone="empty" />
                                 {goal > 0 && inGoal && (
                                   <div className="mt-0.5 text-[9px] text-muted-foreground">
-                                    meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                    meta {Math.round(slotExpected)}
                                   </div>
                                 )}
                                 {!inGoal && (
@@ -1125,7 +1126,7 @@ function Heatmap({
                             </Fragment>
                           );
                         }
-                        const ratio = expectedPerHour > 0 ? e.quantity / expectedPerHour : 0;
+                        const ratio = slotExpected > 0 ? e.quantity / slotExpected : 0;
                         const tone =
                           goal === 0 || !inGoal
                             ? "neutral"
@@ -1143,7 +1144,7 @@ function Heatmap({
                               <Cell2 tone={tone} value={e.quantity} />
                               {goal > 0 && inGoal && (
                                 <div className="mt-0.5 text-[9px] text-muted-foreground">
-                                  meta {Math.round(expectedPerHour * (s.minutes / 60))}
+                                  meta {Math.round(slotExpected)}
                                 </div>
                               )}
                               {!inGoal && (
