@@ -245,9 +245,7 @@ async function exportReportPdf({
           const expected = metaPerHour;
           const q = Number(val);
           const ratio = expected > 0 ? q / expected : 0;
-          if (ratio > 1.15) data.cell.styles.fillColor = [191, 219, 254];
-          else if (ratio >= 1.0) data.cell.styles.fillColor = [187, 247, 208];
-          else if (ratio >= 0.9) data.cell.styles.fillColor = [254, 240, 138];
+          if (ratio >= 0.3) data.cell.styles.fillColor = [191, 219, 254];
           else data.cell.styles.fillColor = [254, 202, 202];
         }
       }
@@ -1127,12 +1125,8 @@ function Heatmap({
                         const tone =
                           goal === 0 || !inGoal
                             ? "neutral"
-                            : ratio > 1.15
+                            : ratio >= 0.3
                             ? "exceed"
-                            : ratio >= 1.0
-                            ? "ok"
-                            : ratio >= 0.9
-                            ? "warn"
                             : "bad";
                         return (
                           <Fragment key={`c-${s.index}`}>
