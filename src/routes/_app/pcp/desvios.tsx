@@ -140,6 +140,7 @@ function DeviationForm({
   const [responsible, setResponsible] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   const filteredMachines = useMemo(
     () => machines.filter((m) => !areaId || m.area_id === areaId),
@@ -153,6 +154,7 @@ function DeviationForm({
     setAreaId(""); setMachineId(""); setItemCode("");
     setQuantity("0"); setPieceWeight("0"); setDeviation("");
     setOperator(""); setActionPlan(""); setResponsible(""); setFiles([]);
+    setFileInputKey((k) => k + 1);
   };
 
   const submit = async () => {
@@ -257,6 +259,7 @@ function DeviationForm({
         </Field>
         <Field label="Fotos" className="sm:col-span-2 lg:col-span-3">
           <Input
+            key={fileInputKey}
             type="file"
             multiple
             accept="image/*"
