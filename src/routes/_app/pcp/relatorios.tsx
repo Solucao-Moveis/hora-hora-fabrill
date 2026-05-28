@@ -80,9 +80,105 @@ function RelatoriosPage() {
     enabled: machineIds.length > 0,
   });
 
+  // Dados do mês inteiro (todas as máquinas) para os indicadores
+  const allMachineIds = useMemo(() => (machinesQ.data ?? []).map((m) => m.id), [machinesQ.data]);
+  const monthEntriesQ = useQuery({
+    queryKey: ["entries-range", monthRange.from, monthRange.to, "all"],
+    queryFn: () => fetchEntriesRange(monthRange.from, monthRange.to, allMachineIds),
+    enabled: allMachineIds.length > 0,
+  });
+  const monthGoalsQ = useQuery({
+    queryKey: ["goals-range", monthRange.from, monthRange.to, "all"],
+    queryFn: () => fetchGoalsRange(monthRange.from, monthRange.to, allMachineIds),
+    enabled: allMachineIds.length > 0,
+  });
+  const monthOperatorsQ = useQuery({
+    queryKey: ["operators-range", monthRange.from, monthRange.to, "all"],
+    queryFn: () => fetchOperatorsRange(monthRange.from, monthRange.to, allMachineIds),
+    enabled: allMachineIds.length > 0,
+  });
+
   if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
 
   const areas = areasQ.data ?? [];
+  const allMachines = machinesQ.data ?? [];
+  const machineToArea = new Map(allMachines.map((m) => [m.id, m.area_id]));
+
+  const COLORS = [
+    "hsl(221 83% 53%)",
+    "hsl(142 71% 45%)",
+    "hsl(38 92% 50%)",
+    "hsl(0 72% 51%)",
+    "hsl(262 83% 58%)",
+    "hsl(178 78% 38%)",
+    "hsl(24 95% 53%)",
+    "hsl(199 89% 48%)",
+  ];
+  const areaColor = (idx: number) => COLORS[idx % COLORS.length];
+
+  // Indicador 1: Meta diária por setor (por dia do mês)
+  const dailyGoalBySector = useMemo(() => {
+    const goals = monthGoalsQ.data ?? [];
+    const rows: Record<string, number | string>[] = [];
+    for (let d = 1; d <= monthRange.days; d++) {
+      const iso = `${month}-${String(d).padStart(2, "0")}`;
+      const row: Record<string, number | string> = { day: String(d) };
+      areas.forEach((a) => (row[a.name] = 0));
+      goals
+        .filter((g) => g.goal_date === iso)
+        .forEach((g) => {
+          const areaId = machineToArea.get(g.machine_id);
+          const area = areas.find((a) => a.id === areaId);
+          if (!area) return;
+          row[area.name] = (row[area.name] as number) + g.goal;
+        });
+      rows.push(row);
+    }
+    return rows;
+  }, [monthGoalsQ.data, areas, monthRange, month, machineToArea]);
+
+  // Indicador 2: Meta total x realizado por setor (mês)
+  const totalBySector = useMemo(() => {
+    const goals = monthGoalsQ.data ?? [];
+    const entries = monthEntriesQ.data ?? [];
+    return areas.map((a) => {
+      const machineIdsOfArea = allMachines.filter((m) => m.area_id === a.id).map((m) => m.id);
+      const meta = goals
+        .filter((g) => machineIdsOfArea.includes(g.machine_id))
+        .reduce((s, g) => s + g.goal, 0);
+      const realizado = entries
+        .filter((e) => machineIdsOfArea.includes(e.machine_id))
+        .reduce((s, e) => s + e.quantity, 0);
+      return { setor: a.name, Meta: meta, Realizado: realizado };
+    });
+  }, [monthGoalsQ.data, monthEntriesQ.data, areas, allMachines]);
+
+  // Indicador 3: Funcionário do mês por setor
+  const employeeOfMonthBySector = useMemo(() => {
+    const entries = monthEntriesQ.data ?? [];
+    const operators = monthOperatorsQ.data ?? [];
+    // chave: machine_id|log_date -> operator_name
+    const opMap = new Map<string, string>();
+    operators.forEach((o) => {
+      const name = (o.operator_name ?? "").trim();
+      if (name) opMap.set(`${o.machine_id}|${o.log_date}`, name);
+    });
+    return areas.map((a) => {
+      const machineIdsOfArea = new Set(allMachines.filter((m) => m.area_id === a.id).map((m) => m.id));
+      const totals = new Map<string, number>();
+      entries
+        .filter((e) => machineIdsOfArea.has(e.machine_id))
+        .forEach((e) => {
+          const op = opMap.get(`${e.machine_id}|${e.entry_date}`);
+          if (!op) return;
+          totals.set(op, (totals.get(op) ?? 0) + e.quantity);
+        });
+      const ranked = Array.from(totals.entries()).sort((x, y) => y[1] - x[1]);
+      const top = ranked[0];
+      return { setor: a.name, operador: top?.[0] ?? "—", total: top?.[1] ?? 0 };
+    });
+  }, [monthEntriesQ.data, monthOperatorsQ.data, areas, allMachines]);
+
 
   const exportDailyByArea = () => {
     if (!entriesQ.data || !goalsQ.data) return;
