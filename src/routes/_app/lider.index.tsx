@@ -9,9 +9,14 @@ import {
   fetchEntriesForDate,
   fetchJustificationsForDate,
   fetchOvertime,
-  upsertOperator,
+  setOperatorsForDate,
   upsertEntry,
   upsertJustification,
+  fetchCollaborators,
+  createCollaborator,
+  updateCollaborator,
+  deleteCollaborator,
+  type Collaborator,
   type Machine,
 } from "@/lib/queries";
 import { todayIso, formatDateBR, getApontamentoSlots, effectiveDayGoal } from "@/lib/time-slots";
@@ -21,8 +26,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2, Plus, UserMinus, UserCheck } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CollaboratorMultiSelect } from "@/components/app/CollaboratorMultiSelect";
+import type { Area } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/lider/")({
   component: LiderPage,
@@ -65,6 +81,11 @@ function LiderPage() {
     queryKey: ["overtime", date],
     queryFn: () => fetchOvertime(date),
   });
+  const collaboratorsQ = useQuery({
+    queryKey: ["collaborators", areaIds],
+    queryFn: () => fetchCollaborators(areaIds),
+    enabled: areaIds.length > 0,
+  });
   const overtime = !!overtimeQ.data;
 
   if (!isLider) {
@@ -81,6 +102,7 @@ function LiderPage() {
   }
 
   const machines = machinesQ.data ?? [];
+  const activeCollabs = (collaboratorsQ.data ?? []).filter((c) => c.active);
 
   return (
     <div className="space-y-6">
@@ -94,10 +116,19 @@ function LiderPage() {
         <DatePicker value={date} onChange={setDate} />
       </div>
 
+      <CollaboratorsCard
+        areas={areas}
+        collaborators={collaboratorsQ.data ?? []}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["collaborators", areaIds] })}
+      />
+
       <div className="grid gap-4">
         {areas.map((area) => {
           const areaMachines = machines.filter((m) => m.area_id === area.id);
           if (!areaMachines.length) return null;
+          const areaOptions = activeCollabs
+            .filter((c) => c.area_id === area.id)
+            .map((c) => c.name);
           return (
             <div key={area.id} className="space-y-3">
               <h2 className="text-lg font-semibold">{area.name}</h2>
@@ -113,7 +144,11 @@ function LiderPage() {
                       overtime,
                       date,
                     )}
-                    operator={operatorsQ.data?.find((o) => o.machine_id === m.id)?.operator_name ?? ""}
+                    collaboratorOptions={areaOptions}
+                    operators={(operatorsQ.data ?? [])
+                      .filter((o) => o.machine_id === m.id)
+                      .map((o) => (o.operator_name ?? "").trim())
+                      .filter((n) => n.length > 0)}
                     entries={(entriesQ.data ?? []).filter((e) => e.machine_id === m.id)}
                     justification={
                       justifQ.data?.find((j) => j.machine_id === m.id)?.justification ?? ""
@@ -134,12 +169,195 @@ function LiderPage() {
   );
 }
 
+function CollaboratorsCard({
+  areas,
+  collaborators,
+  onChanged,
+}: {
+  areas: Area[];
+  collaborators: Collaborator[];
+  onChanged: () => void;
+}) {
+  const [newName, setNewName] = useState("");
+  const [newArea, setNewArea] = useState<string>(areas[0]?.id ?? "");
+  useEffect(() => {
+    if (!newArea && areas[0]) setNewArea(areas[0].id);
+  }, [areas, newArea]);
+
+  const add = async () => {
+    if (!newName.trim() || !newArea) return;
+    try {
+      await createCollaborator(newArea, newName);
+      setNewName("");
+      toast.success("Colaborador cadastrado");
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao cadastrar colaborador");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Colaboradores da minha área</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Cadastre aqui os colaboradores da sua equipe. Eles ficam disponíveis na lista
+          suspensa do apontamento de cada máquina.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[200px] space-y-1">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Nome</Label>
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Nome do colaborador"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  add();
+                }
+              }}
+              className="h-10"
+            />
+          </div>
+          {areas.length > 1 && (
+            <div className="space-y-1">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Área</Label>
+              <Select value={newArea} onValueChange={setNewArea}>
+                <SelectTrigger className="h-10 w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {areas.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <Button type="button" onClick={add} className="h-10 gap-2">
+            <Plus className="h-4 w-4" /> Adicionar
+          </Button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {areas.map((area) => {
+            const items = collaborators.filter((c) => c.area_id === area.id);
+            return (
+              <div key={area.id} className="rounded-lg border bg-card p-3">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {area.name} · {items.filter((c) => c.active).length} ativos
+                </div>
+                {items.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    Nenhum colaborador cadastrado.
+                  </div>
+                ) : (
+                  <ul className="space-y-1">
+                    {items.map((c) => (
+                      <CollaboratorRow key={c.id} item={c} onChanged={onChanged} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CollaboratorRow({ item, onChanged }: { item: Collaborator; onChanged: () => void }) {
+  const [name, setName] = useState(item.name);
+  useEffect(() => setName(item.name), [item.name]);
+
+  const saveName = async () => {
+    if (name.trim() === item.name.trim() || !name.trim()) {
+      setName(item.name);
+      return;
+    }
+    try {
+      await updateCollaborator(item.id, { name });
+      toast.success("Nome atualizado");
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao atualizar");
+      setName(item.name);
+    }
+  };
+
+  const toggleActive = async () => {
+    try {
+      await updateCollaborator(item.id, { active: !item.active });
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao atualizar");
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Remover "${item.name}"?`)) return;
+    try {
+      await deleteCollaborator(item.id);
+      toast.success("Colaborador removido");
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao remover");
+    }
+  };
+
+  return (
+    <li className={cn("flex items-center gap-1", !item.active && "opacity-60")}>
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={saveName}
+        className="h-8 text-sm"
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        onClick={toggleActive}
+        title={item.active ? "Desativar" : "Reativar"}
+      >
+        {item.active ? (
+          <UserMinus className="h-4 w-4" />
+        ) : (
+          <UserCheck className="h-4 w-4" />
+        )}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0 text-destructive"
+        onClick={remove}
+        title="Remover"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </li>
+  );
+}
+
 function MachineCard({
   machine,
   date,
   userId,
   goal,
-  operator,
+  collaboratorOptions,
+  operators,
   entries,
   justification,
   onChanged,
@@ -148,28 +366,37 @@ function MachineCard({
   date: string;
   userId: string;
   goal: number;
-  operator: string;
+  collaboratorOptions: string[];
+  operators: string[];
   entries: { hour_slot: number; quantity: number; observation: string | null }[];
   justification: string;
   onChanged: () => void;
 }) {
-  const [op, setOp] = useState(operator);
-  useEffect(() => setOp(operator), [operator]);
+  const [selectedOps, setSelectedOps] = useState<string[]>(operators);
+  const opsKey = operators.join("|");
+  useEffect(() => {
+    setSelectedOps(operators);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opsKey]);
+
   const [just, setJust] = useState(justification);
   useEffect(() => setJust(justification), [justification]);
 
   const total = entries.reduce((s, e) => s + (e.quantity || 0), 0);
   const pct = goal > 0 ? Math.round((total / goal) * 100) : 0;
 
-  const saveOperator = async () => {
-    if (op.trim() === operator.trim()) return;
+  const saveOperators = async (next: string[]) => {
+    setSelectedOps(next);
+    const a = [...next].map((s) => s.trim()).sort().join("|");
+    const b = [...operators].map((s) => s.trim()).sort().join("|");
+    if (a === b) return;
     try {
-      await upsertOperator(machine.id, date, op.trim());
-      toast.success("Operador salvo");
+      await setOperatorsForDate(machine.id, date, next);
+      toast.success("Colaboradores salvos");
       onChanged();
     } catch (e: unknown) {
       const err = e as { message?: string };
-      toast.error(err.message ?? "Erro ao salvar operador");
+      toast.error(err.message ?? "Erro ao salvar colaboradores");
     }
   };
 
@@ -211,14 +438,20 @@ function MachineCard({
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[200px] space-y-1">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Operador</Label>
-            <Input
-              value={op}
-              onChange={(e) => setOp(e.target.value)}
-              onBlur={saveOperator}
-              placeholder="Nome do operador"
-              className="h-10"
+          <div className="flex-1 min-w-[260px] space-y-1">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+              Colaboradores (pode selecionar mais de um)
+            </Label>
+            <CollaboratorMultiSelect
+              options={collaboratorOptions}
+              selected={selectedOps}
+              onChange={saveOperators}
+              placeholder={
+                collaboratorOptions.length === 0
+                  ? "Cadastre colaboradores acima"
+                  : "Selecionar colaboradores"
+              }
+              disabled={collaboratorOptions.length === 0}
             />
           </div>
         </div>
