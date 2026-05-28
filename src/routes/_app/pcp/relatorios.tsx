@@ -46,6 +46,7 @@ function RelatoriosPage() {
 
   // Mês selecionado para os indicadores (YYYY-MM). Default = mês atual.
   const [month, setMonth] = useState(() => todayIso().slice(0, 7));
+  const [dailySector, setDailySector] = useState<string>("all");
   const monthRange = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
     const first = new Date(y, (m ?? 1) - 1, 1);
