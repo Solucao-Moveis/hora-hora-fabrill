@@ -337,7 +337,7 @@ function RelatoriosPage() {
                 <p className="text-xs text-muted-foreground">
                   {dailySector === "all"
                     ? "Soma das metas cadastradas para cada dia do mês, agrupada por setor."
-                    : "Meta, realizado e % da meta atingida por dia para o setor selecionado."}
+                    : "% da meta atingida por dia para o setor selecionado."}
                 </p>
               </div>
               <div className="space-y-1">
