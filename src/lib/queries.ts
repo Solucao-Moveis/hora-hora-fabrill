@@ -179,7 +179,9 @@ export async function updateCollaborator(
   id: string,
   changes: Partial<Pick<Collaborator, "name" | "active">>,
 ) {
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const patch: { name?: string; active?: boolean; updated_at: string } = {
+    updated_at: new Date().toISOString(),
+  };
   if (changes.name !== undefined) patch.name = changes.name.trim();
   if (changes.active !== undefined) patch.active = changes.active;
   const { error } = await supabase.from("collaborators").update(patch).eq("id", id);
