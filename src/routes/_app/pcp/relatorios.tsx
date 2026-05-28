@@ -31,6 +31,7 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  ComposedChart,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/pcp/relatorios")({
