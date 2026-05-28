@@ -110,6 +110,89 @@ export async function upsertOperator(machine_id: string, log_date: string, opera
   if (error) throw error;
 }
 
+/**
+ * Substitui o conjunto de operadores de uma máquina em um dia específico
+ * pela lista informada (multi-seleção). Remove todos os registros do dia
+ * e insere os novos.
+ */
+export async function setOperatorsForDate(
+  machine_id: string,
+  log_date: string,
+  operator_names: string[],
+) {
+  const cleaned = Array.from(
+    new Set(
+      operator_names
+        .map((n) => (n ?? "").trim())
+        .filter((n) => n.length > 0),
+    ),
+  );
+
+  const { error: delErr } = await supabase
+    .from("machine_operators")
+    .delete()
+    .eq("machine_id", machine_id)
+    .eq("log_date", log_date);
+  if (delErr) throw delErr;
+
+  if (cleaned.length === 0) return;
+
+  const rows = cleaned.map((operator_name) => ({
+    machine_id,
+    log_date,
+    operator_name,
+    updated_at: new Date().toISOString(),
+  }));
+  const { error: insErr } = await supabase.from("machine_operators").insert(rows);
+  if (insErr) throw insErr;
+}
+
+// ============================================================
+// Colaboradores (cadastro por área, gerenciado pelo líder/PCP)
+// ============================================================
+export type Collaborator = {
+  id: string;
+  area_id: string;
+  name: string;
+  active: boolean;
+};
+
+export async function fetchCollaborators(areaIds?: string[]): Promise<Collaborator[]> {
+  let q = supabase
+    .from("collaborators")
+    .select("id,area_id,name,active")
+    .order("name");
+  if (areaIds && areaIds.length) q = q.in("area_id", areaIds);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Collaborator[];
+}
+
+export async function createCollaborator(area_id: string, name: string) {
+  const { error } = await supabase
+    .from("collaborators")
+    .insert({ area_id, name: name.trim() });
+  if (error) throw error;
+}
+
+export async function updateCollaborator(
+  id: string,
+  changes: Partial<Pick<Collaborator, "name" | "active">>,
+) {
+  const patch: { name?: string; active?: boolean; updated_at: string } = {
+    updated_at: new Date().toISOString(),
+  };
+  if (changes.name !== undefined) patch.name = changes.name.trim();
+  if (changes.active !== undefined) patch.active = changes.active;
+  const { error } = await supabase.from("collaborators").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteCollaborator(id: string) {
+  const { error } = await supabase.from("collaborators").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function upsertEntry(
   machine_id: string,
   entry_date: string,
