@@ -137,6 +137,29 @@ function RelatoriosPage() {
     return rows;
   }, [monthGoalsQ.data, areas, monthRange, month, machineToArea]);
 
+  // Série diária do setor selecionado (meta, realizado e % meta por dia)
+  const dailySectorSeries = useMemo(() => {
+    if (dailySector === "all") return [];
+    const goals = monthGoalsQ.data ?? [];
+    const entries = monthEntriesQ.data ?? [];
+    const machineIdsOfArea = new Set(
+      allMachines.filter((m) => m.area_id === dailySector).map((m) => m.id),
+    );
+    const rows: { day: string; Meta: number; Realizado: number; pct: number | null }[] = [];
+    for (let d = 1; d <= monthRange.days; d++) {
+      const iso = `${month}-${String(d).padStart(2, "0")}`;
+      const meta = goals
+        .filter((g) => g.goal_date === iso && machineIdsOfArea.has(g.machine_id))
+        .reduce((s, g) => s + g.goal, 0);
+      const realizado = entries
+        .filter((e) => e.entry_date === iso && machineIdsOfArea.has(e.machine_id))
+        .reduce((s, e) => s + e.quantity, 0);
+      const pct = meta > 0 ? Math.round((realizado / meta) * 100) : null;
+      rows.push({ day: String(d), Meta: meta, Realizado: realizado, pct });
+    }
+    return rows;
+  }, [dailySector, monthGoalsQ.data, monthEntriesQ.data, allMachines, monthRange, month]);
+
   // Indicador 2: Meta total x realizado por setor (mês)
   const totalBySector = useMemo(() => {
     const goals = monthGoalsQ.data ?? [];
