@@ -474,7 +474,8 @@ function RelatoriosPage() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold">Funcionário do mês por setor</h3>
             <p className="text-xs text-muted-foreground">
-              Operador com maior produção acumulada em cada setor no mês.
+              Colaborador com maior % de atingimento da meta no setor (considerando
+              divisão proporcional quando há mais de um colaborador no mesmo posto).
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {employeeOfMonthBySector.map((row) => (
@@ -485,10 +486,18 @@ function RelatoriosPage() {
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">{row.setor}</p>
                     <p className="truncate font-medium">{row.operador}</p>
+                    {row.operador !== "—" && (
+                      <p className="text-[11px] text-muted-foreground">
+                        {row.real.toLocaleString("pt-BR")} /{" "}
+                        {row.meta.toLocaleString("pt-BR")} peças
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-right">
                     <Trophy className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm font-semibold">{row.total.toLocaleString("pt-BR")}</span>
+                    <span className="text-sm font-semibold">
+                      {row.operador === "—" ? "—" : `${row.pct}%`}
+                    </span>
                   </div>
                 </div>
               ))}
