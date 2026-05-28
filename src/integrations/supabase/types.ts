@@ -38,8 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborators: {
+        Row: {
+          active: boolean
+          area_id: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          area_id: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          area_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       machine_operators: {
         Row: {
+          collaborator_id: string | null
           id: string
           log_date: string
           machine_id: string
@@ -47,6 +75,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          collaborator_id?: string | null
           id?: string
           log_date: string
           machine_id: string
@@ -54,6 +83,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          collaborator_id?: string | null
           id?: string
           log_date?: string
           machine_id?: string
