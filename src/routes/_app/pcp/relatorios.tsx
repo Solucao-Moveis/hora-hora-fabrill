@@ -7,6 +7,7 @@ import {
   fetchEntriesRange,
   fetchGoalsRange,
   fetchOperatorsForDate,
+  fetchOperatorsRange,
 } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,20 @@ import { todayIso, formatDateBR, TIME_SLOTS } from "@/lib/time-slots";
 import { useAuth } from "@/lib/auth-context";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FileDown } from "lucide-react";
+import { FileDown, Trophy } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  LineChart,
+  Line,
+} from "recharts";
 
 export const Route = createFileRoute("/_app/pcp/relatorios")({
   component: RelatoriosPage,
