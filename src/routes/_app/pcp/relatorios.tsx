@@ -43,6 +43,17 @@ function RelatoriosPage() {
   const [to, setTo] = useState(todayIso());
   const [areaFilter, setAreaFilter] = useState<string>("all");
 
+  // Mês selecionado para os indicadores (YYYY-MM). Default = mês atual.
+  const [month, setMonth] = useState(() => todayIso().slice(0, 7));
+  const monthRange = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    const first = new Date(y, (m ?? 1) - 1, 1);
+    const last = new Date(y, m ?? 1, 0);
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { from: fmt(first), to: fmt(last), days: last.getDate() };
+  }, [month]);
+
   const areasQ = useQuery({ queryKey: ["areas"], queryFn: fetchAreas });
   const machinesQ = useQuery({ queryKey: ["machines", "all"], queryFn: () => fetchMachines() });
 
