@@ -38,7 +38,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CollaboratorMultiSelect } from "@/components/app/CollaboratorMultiSelect";
-import type { Area } from "@/lib/queries";
+import type { AreaRef } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app/lider/")({
   component: LiderPage,
@@ -174,7 +174,7 @@ function CollaboratorsCard({
   collaborators,
   onChanged,
 }: {
-  areas: Area[];
+  areas: AreaRef[];
   collaborators: Collaborator[];
   onChanged: () => void;
 }) {
