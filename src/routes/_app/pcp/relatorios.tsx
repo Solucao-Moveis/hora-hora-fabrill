@@ -31,6 +31,7 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  ComposedChart,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/pcp/relatorios")({
@@ -45,6 +46,7 @@ function RelatoriosPage() {
 
   // Mês selecionado para os indicadores (YYYY-MM). Default = mês atual.
   const [month, setMonth] = useState(() => todayIso().slice(0, 7));
+  const [dailySector, setDailySector] = useState<string>("all");
   const monthRange = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
     const first = new Date(y, (m ?? 1) - 1, 1);
@@ -134,6 +136,29 @@ function RelatoriosPage() {
     }
     return rows;
   }, [monthGoalsQ.data, areas, monthRange, month, machineToArea]);
+
+  // Série diária do setor selecionado (meta, realizado e % meta por dia)
+  const dailySectorSeries = useMemo(() => {
+    if (dailySector === "all") return [];
+    const goals = monthGoalsQ.data ?? [];
+    const entries = monthEntriesQ.data ?? [];
+    const machineIdsOfArea = new Set(
+      allMachines.filter((m) => m.area_id === dailySector).map((m) => m.id),
+    );
+    const rows: { day: string; Meta: number; Realizado: number; pct: number | null }[] = [];
+    for (let d = 1; d <= monthRange.days; d++) {
+      const iso = `${month}-${String(d).padStart(2, "0")}`;
+      const meta = goals
+        .filter((g) => g.goal_date === iso && machineIdsOfArea.has(g.machine_id))
+        .reduce((s, g) => s + g.goal, 0);
+      const realizado = entries
+        .filter((e) => e.entry_date === iso && machineIdsOfArea.has(e.machine_id))
+        .reduce((s, e) => s + e.quantity, 0);
+      const pct = meta > 0 ? Math.round((realizado / meta) * 100) : null;
+      rows.push({ day: String(d), Meta: meta, Realizado: realizado, pct });
+    }
+    return rows;
+  }, [dailySector, monthGoalsQ.data, monthEntriesQ.data, allMachines, monthRange, month]);
 
   // Indicador 2: Meta total x realizado por setor (mês)
   const totalBySector = useMemo(() => {
@@ -304,29 +329,81 @@ function RelatoriosPage() {
         <CardContent className="space-y-8">
           {/* Indicador 1 */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold">Meta diária por setor</h3>
-            <p className="text-xs text-muted-foreground">
-              Soma das metas cadastradas para cada dia do mês, agrupada por setor.
-            </p>
-            <div className="h-[280px] w-full">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Meta diária por setor</h3>
+                <p className="text-xs text-muted-foreground">
+                  {dailySector === "all"
+                    ? "Soma das metas cadastradas para cada dia do mês, agrupada por setor."
+                    : "Meta, realizado e % da meta atingida por dia para o setor selecionado."}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Setor</Label>
+                <Select value={dailySector} onValueChange={setDailySector}>
+                  <SelectTrigger className="h-9 w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os setores</SelectItem>
+                    {areas.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={dailyGoalBySector}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="day" fontSize={11} />
-                  <YAxis fontSize={11} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  {areas.map((a, idx) => (
-                    <Line
-                      key={a.id}
-                      type="monotone"
-                      dataKey={a.name}
-                      stroke={areaColor(idx)}
-                      strokeWidth={2}
-                      dot={false}
+                {dailySector === "all" ? (
+                  <LineChart data={dailyGoalBySector}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="day" fontSize={11} />
+                    <YAxis fontSize={11} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    {areas.map((a, idx) => (
+                      <Line
+                        key={a.id}
+                        type="monotone"
+                        dataKey={a.name}
+                        stroke={areaColor(idx)}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    ))}
+                  </LineChart>
+                ) : (
+                  <ComposedChart data={dailySectorSeries}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="day" fontSize={11} />
+                    <YAxis yAxisId="left" fontSize={11} />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      fontSize={11}
+                      tickFormatter={(v) => `${v}%`}
                     />
-                  ))}
-                </LineChart>
+                    <Tooltip
+                      formatter={(value: number | string, name: string) =>
+                        name === "% Meta" ? [`${value}%`, name] : [value, name]
+                      }
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar yAxisId="left" dataKey="Meta" fill="hsl(221 83% 53%)" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="Realizado" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="pct"
+                      name="% Meta"
+                      stroke="hsl(38 92% 50%)"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      connectNulls
+                    />
+                  </ComposedChart>
+                )}
               </ResponsiveContainer>
             </div>
           </div>
