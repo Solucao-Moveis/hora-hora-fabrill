@@ -98,8 +98,6 @@ function RelatoriosPage() {
     enabled: allMachineIds.length > 0,
   });
 
-  if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
-
   const areas = areasQ.data ?? [];
   const allMachines = machinesQ.data ?? [];
   const machineToArea = new Map(allMachines.map((m) => [m.id, m.area_id]));
@@ -178,6 +176,8 @@ function RelatoriosPage() {
       return { setor: a.name, operador: top?.[0] ?? "—", total: top?.[1] ?? 0 };
     });
   }, [monthEntriesQ.data, monthOperatorsQ.data, areas, allMachines]);
+
+  if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
 
 
   const exportDailyByArea = () => {
