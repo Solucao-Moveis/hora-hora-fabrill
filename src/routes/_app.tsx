@@ -51,7 +51,7 @@ function AppLayout() {
     ? [
         { to: "/pcp/metas", label: "Metas", icon: Target },
         { to: "/pcp/dashboard", label: "Dashboard", icon: BarChart3 },
-        { to: "/pcp/relatorios", label: "Relatórios", icon: ClipboardList },
+        { to: "/pcp/relatorios", label: "Indicadores", icon: ClipboardList },
         { to: "/pcp/desvios", label: "Desvios", icon: AlertTriangle },
         { to: "/pcp/usuarios", label: "Usuários", icon: Users },
       ]
