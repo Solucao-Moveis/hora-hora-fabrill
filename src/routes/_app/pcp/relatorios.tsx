@@ -7,6 +7,7 @@ import {
   fetchEntriesRange,
   fetchGoalsRange,
   fetchOperatorsForDate,
+  fetchOperatorsRange,
 } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,20 @@ import { todayIso, formatDateBR, TIME_SLOTS } from "@/lib/time-slots";
 import { useAuth } from "@/lib/auth-context";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FileDown } from "lucide-react";
+import { FileDown, Trophy } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  LineChart,
+  Line,
+} from "recharts";
 
 export const Route = createFileRoute("/_app/pcp/relatorios")({
   component: RelatoriosPage,
@@ -29,6 +42,17 @@ function RelatoriosPage() {
   const [from, setFrom] = useState(todayIso());
   const [to, setTo] = useState(todayIso());
   const [areaFilter, setAreaFilter] = useState<string>("all");
+
+  // Mês selecionado para os indicadores (YYYY-MM). Default = mês atual.
+  const [month, setMonth] = useState(() => todayIso().slice(0, 7));
+  const monthRange = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    const first = new Date(y, (m ?? 1) - 1, 1);
+    const last = new Date(y, m ?? 1, 0);
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { from: fmt(first), to: fmt(last), days: last.getDate() };
+  }, [month]);
 
   const areasQ = useQuery({ queryKey: ["areas"], queryFn: fetchAreas });
   const machinesQ = useQuery({ queryKey: ["machines", "all"], queryFn: () => fetchMachines() });
@@ -56,9 +80,105 @@ function RelatoriosPage() {
     enabled: machineIds.length > 0,
   });
 
-  if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
+  // Dados do mês inteiro (todas as máquinas) para os indicadores
+  const allMachineIds = useMemo(() => (machinesQ.data ?? []).map((m) => m.id), [machinesQ.data]);
+  const monthEntriesQ = useQuery({
+    queryKey: ["entries-range", monthRange.from, monthRange.to, "all"],
+    queryFn: () => fetchEntriesRange(monthRange.from, monthRange.to, allMachineIds),
+    enabled: allMachineIds.length > 0,
+  });
+  const monthGoalsQ = useQuery({
+    queryKey: ["goals-range", monthRange.from, monthRange.to, "all"],
+    queryFn: () => fetchGoalsRange(monthRange.from, monthRange.to, allMachineIds),
+    enabled: allMachineIds.length > 0,
+  });
+  const monthOperatorsQ = useQuery({
+    queryKey: ["operators-range", monthRange.from, monthRange.to, "all"],
+    queryFn: () => fetchOperatorsRange(monthRange.from, monthRange.to, allMachineIds),
+    enabled: allMachineIds.length > 0,
+  });
 
   const areas = areasQ.data ?? [];
+  const allMachines = machinesQ.data ?? [];
+  const machineToArea = new Map(allMachines.map((m) => [m.id, m.area_id]));
+
+  const COLORS = [
+    "hsl(221 83% 53%)",
+    "hsl(142 71% 45%)",
+    "hsl(38 92% 50%)",
+    "hsl(0 72% 51%)",
+    "hsl(262 83% 58%)",
+    "hsl(178 78% 38%)",
+    "hsl(24 95% 53%)",
+    "hsl(199 89% 48%)",
+  ];
+  const areaColor = (idx: number) => COLORS[idx % COLORS.length];
+
+  // Indicador 1: Meta diária por setor (por dia do mês)
+  const dailyGoalBySector = useMemo(() => {
+    const goals = monthGoalsQ.data ?? [];
+    const rows: Record<string, number | string>[] = [];
+    for (let d = 1; d <= monthRange.days; d++) {
+      const iso = `${month}-${String(d).padStart(2, "0")}`;
+      const row: Record<string, number | string> = { day: String(d) };
+      areas.forEach((a) => (row[a.name] = 0));
+      goals
+        .filter((g) => g.goal_date === iso)
+        .forEach((g) => {
+          const areaId = machineToArea.get(g.machine_id);
+          const area = areas.find((a) => a.id === areaId);
+          if (!area) return;
+          row[area.name] = (row[area.name] as number) + g.goal;
+        });
+      rows.push(row);
+    }
+    return rows;
+  }, [monthGoalsQ.data, areas, monthRange, month, machineToArea]);
+
+  // Indicador 2: Meta total x realizado por setor (mês)
+  const totalBySector = useMemo(() => {
+    const goals = monthGoalsQ.data ?? [];
+    const entries = monthEntriesQ.data ?? [];
+    return areas.map((a) => {
+      const machineIdsOfArea = allMachines.filter((m) => m.area_id === a.id).map((m) => m.id);
+      const meta = goals
+        .filter((g) => machineIdsOfArea.includes(g.machine_id))
+        .reduce((s, g) => s + g.goal, 0);
+      const realizado = entries
+        .filter((e) => machineIdsOfArea.includes(e.machine_id))
+        .reduce((s, e) => s + e.quantity, 0);
+      return { setor: a.name, Meta: meta, Realizado: realizado };
+    });
+  }, [monthGoalsQ.data, monthEntriesQ.data, areas, allMachines]);
+
+  // Indicador 3: Funcionário do mês por setor
+  const employeeOfMonthBySector = useMemo(() => {
+    const entries = monthEntriesQ.data ?? [];
+    const operators = monthOperatorsQ.data ?? [];
+    // chave: machine_id|log_date -> operator_name
+    const opMap = new Map<string, string>();
+    operators.forEach((o) => {
+      const name = (o.operator_name ?? "").trim();
+      if (name) opMap.set(`${o.machine_id}|${o.log_date}`, name);
+    });
+    return areas.map((a) => {
+      const machineIdsOfArea = new Set(allMachines.filter((m) => m.area_id === a.id).map((m) => m.id));
+      const totals = new Map<string, number>();
+      entries
+        .filter((e) => machineIdsOfArea.has(e.machine_id))
+        .forEach((e) => {
+          const op = opMap.get(`${e.machine_id}|${e.entry_date}`);
+          if (!op) return;
+          totals.set(op, (totals.get(op) ?? 0) + e.quantity);
+        });
+      const ranked = Array.from(totals.entries()).sort((x, y) => y[1] - x[1]);
+      const top = ranked[0];
+      return { setor: a.name, operador: top?.[0] ?? "—", total: top?.[1] ?? 0 };
+    });
+  }, [monthEntriesQ.data, monthOperatorsQ.data, areas, allMachines]);
+
+  if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
+
 
   const exportDailyByArea = () => {
     if (!entriesQ.data || !goalsQ.data) return;
@@ -160,8 +280,111 @@ function RelatoriosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Exporte relatórios em PDF de produção, eficiência e operadores.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Indicadores da Produção</h1>
+        <p className="text-sm text-muted-foreground">
+          Acompanhe os principais indicadores do mês e gere relatórios em PDF.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-base">Indicadores do mês</CardTitle>
+          <div className="flex items-end gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Mês</Label>
+              <Input
+                type="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="h-9 w-[160px]"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Indicador 1 */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Meta diária por setor</h3>
+            <p className="text-xs text-muted-foreground">
+              Soma das metas cadastradas para cada dia do mês, agrupada por setor.
+            </p>
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dailyGoalBySector}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="day" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  {areas.map((a, idx) => (
+                    <Line
+                      key={a.id}
+                      type="monotone"
+                      dataKey={a.name}
+                      stroke={areaColor(idx)}
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Indicador 2 */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Meta total x Realizado por setor</h3>
+            <p className="text-xs text-muted-foreground">
+              Comparativo do total de meta versus produção realizada no mês.
+            </p>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={totalBySector}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="setor" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="Meta" fill="hsl(221 83% 53%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Realizado" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Indicador 3 */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold">Funcionário do mês por setor</h3>
+            <p className="text-xs text-muted-foreground">
+              Operador com maior produção acumulada em cada setor no mês.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {employeeOfMonthBySector.map((row) => (
+                <div
+                  key={row.setor}
+                  className="flex items-center justify-between rounded-lg border bg-card p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{row.setor}</p>
+                    <p className="truncate font-medium">{row.operador}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-right">
+                    <Trophy className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm font-semibold">{row.total.toLocaleString("pt-BR")}</span>
+                  </div>
+                </div>
+              ))}
+              {employeeOfMonthBySector.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Relatórios em PDF</h2>
+        <p className="text-sm text-muted-foreground">Gere relatórios detalhados do período selecionado.</p>
       </div>
 
       <Card>
