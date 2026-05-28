@@ -58,6 +58,18 @@ export async function fetchOperatorsForDate(date: string, machineIds?: string[])
   return data as Operator[];
 }
 
+export async function fetchOperatorsRange(from: string, to: string, machineIds?: string[]): Promise<Operator[]> {
+  let q = supabase
+    .from("machine_operators")
+    .select("*")
+    .gte("log_date", from)
+    .lte("log_date", to);
+  if (machineIds && machineIds.length) q = q.in("machine_id", machineIds);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data as Operator[];
+}
+
 export async function fetchEntriesForDate(date: string, machineIds?: string[]): Promise<Entry[]> {
   let q = supabase.from("production_entries").select("*").eq("entry_date", date);
   if (machineIds && machineIds.length) q = q.in("machine_id", machineIds);
