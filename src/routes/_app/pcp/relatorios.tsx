@@ -32,6 +32,8 @@ import {
   LineChart,
   Line,
   ComposedChart,
+  LabelList,
+  Cell,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/pcp/relatorios")({
