@@ -280,8 +280,111 @@ function RelatoriosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Exporte relatórios em PDF de produção, eficiência e operadores.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Indicadores da Produção</h1>
+        <p className="text-sm text-muted-foreground">
+          Acompanhe os principais indicadores do mês e gere relatórios em PDF.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <CardTitle className="text-base">Indicadores do mês</CardTitle>
+          <div className="flex items-end gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Mês</Label>
+              <Input
+                type="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="h-9 w-[160px]"
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Indicador 1 */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Meta diária por setor</h3>
+            <p className="text-xs text-muted-foreground">
+              Soma das metas cadastradas para cada dia do mês, agrupada por setor.
+            </p>
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dailyGoalBySector}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="day" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  {areas.map((a, idx) => (
+                    <Line
+                      key={a.id}
+                      type="monotone"
+                      dataKey={a.name}
+                      stroke={areaColor(idx)}
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Indicador 2 */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Meta total x Realizado por setor</h3>
+            <p className="text-xs text-muted-foreground">
+              Comparativo do total de meta versus produção realizada no mês.
+            </p>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={totalBySector}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="setor" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="Meta" fill="hsl(221 83% 53%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Realizado" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Indicador 3 */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold">Funcionário do mês por setor</h3>
+            <p className="text-xs text-muted-foreground">
+              Operador com maior produção acumulada em cada setor no mês.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {employeeOfMonthBySector.map((row) => (
+                <div
+                  key={row.setor}
+                  className="flex items-center justify-between rounded-lg border bg-card p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{row.setor}</p>
+                    <p className="truncate font-medium">{row.operador}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-right">
+                    <Trophy className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm font-semibold">{row.total.toLocaleString("pt-BR")}</span>
+                  </div>
+                </div>
+              ))}
+              {employeeOfMonthBySector.length === 0 && (
+                <p className="text-sm text-muted-foreground">Sem dados no período.</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight">Relatórios em PDF</h2>
+        <p className="text-sm text-muted-foreground">Gere relatórios detalhados do período selecionado.</p>
       </div>
 
       <Card>
