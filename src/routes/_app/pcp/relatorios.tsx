@@ -182,27 +182,78 @@ function RelatoriosPage() {
   const employeeOfMonthBySector = useMemo(() => {
     const entries = monthEntriesQ.data ?? [];
     const operators = monthOperatorsQ.data ?? [];
-    // chave: machine_id|log_date -> operator_name
-    const opMap = new Map<string, string>();
+    const goals = monthGoalsQ.data ?? [];
+
+    // machine_id|log_date -> lista de operadores no dia (multi)
+    const opsByMachineDay = new Map<string, string[]>();
     operators.forEach((o) => {
       const name = (o.operator_name ?? "").trim();
-      if (name) opMap.set(`${o.machine_id}|${o.log_date}`, name);
+      if (!name) return;
+      const key = `${o.machine_id}|${o.log_date}`;
+      const list = opsByMachineDay.get(key) ?? [];
+      if (!list.includes(name)) list.push(name);
+      opsByMachineDay.set(key, list);
     });
+
+    const goalByMachineDay = new Map<string, number>();
+    goals.forEach((g) => {
+      goalByMachineDay.set(`${g.machine_id}|${g.goal_date}`, g.goal);
+    });
+    const realByMachineDay = new Map<string, number>();
+    entries.forEach((e) => {
+      const key = `${e.machine_id}|${e.entry_date}`;
+      realByMachineDay.set(key, (realByMachineDay.get(key) ?? 0) + e.quantity);
+    });
+
     return areas.map((a) => {
-      const machineIdsOfArea = new Set(allMachines.filter((m) => m.area_id === a.id).map((m) => m.id));
-      const totals = new Map<string, number>();
-      entries
-        .filter((e) => machineIdsOfArea.has(e.machine_id))
-        .forEach((e) => {
-          const op = opMap.get(`${e.machine_id}|${e.entry_date}`);
-          if (!op) return;
-          totals.set(op, (totals.get(op) ?? 0) + e.quantity);
+      const machineIdsOfArea = new Set(
+        allMachines.filter((m) => m.area_id === a.id).map((m) => m.id),
+      );
+      // operator -> meta e realizado atribuídos (share = 1/N na máquina/dia)
+      const totals = new Map<string, { meta: number; real: number }>();
+
+      const keys = new Set<string>([
+        ...opsByMachineDay.keys(),
+        ...realByMachineDay.keys(),
+      ]);
+      keys.forEach((key) => {
+        const machineId = key.split("|")[0];
+        if (!machineIdsOfArea.has(machineId)) return;
+        const ops = opsByMachineDay.get(key) ?? [];
+        if (ops.length === 0) return;
+        const meta = goalByMachineDay.get(key) ?? 0;
+        const real = realByMachineDay.get(key) ?? 0;
+        const share = 1 / ops.length;
+        const metaShare = meta * share;
+        const realShare = real * share;
+        ops.forEach((op) => {
+          const cur = totals.get(op) ?? { meta: 0, real: 0 };
+          cur.meta += metaShare;
+          cur.real += realShare;
+          totals.set(op, cur);
         });
-      const ranked = Array.from(totals.entries()).sort((x, y) => y[1] - x[1]);
+      });
+
+      const ranked = Array.from(totals.entries())
+        .map(([op, v]) => ({
+          op,
+          meta: v.meta,
+          real: v.real,
+          pct: v.meta > 0 ? (v.real / v.meta) * 100 : 0,
+        }))
+        .filter((x) => x.meta > 0)
+        .sort((x, y) => y.pct - x.pct);
+
       const top = ranked[0];
-      return { setor: a.name, operador: top?.[0] ?? "—", total: top?.[1] ?? 0 };
+      return {
+        setor: a.name,
+        operador: top?.op ?? "—",
+        pct: top ? Math.round(top.pct) : 0,
+        meta: top ? Math.round(top.meta) : 0,
+        real: top ? Math.round(top.real) : 0,
+      };
     });
-  }, [monthEntriesQ.data, monthOperatorsQ.data, areas, allMachines]);
+  }, [monthEntriesQ.data, monthOperatorsQ.data, monthGoalsQ.data, areas, allMachines]);
 
   if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
 
