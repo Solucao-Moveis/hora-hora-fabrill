@@ -32,6 +32,8 @@ import {
   LineChart,
   Line,
   ComposedChart,
+  LabelList,
+  Cell,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/pcp/relatorios")({
@@ -335,7 +337,7 @@ function RelatoriosPage() {
                 <p className="text-xs text-muted-foreground">
                   {dailySector === "all"
                     ? "Soma das metas cadastradas para cada dia do mês, agrupada por setor."
-                    : "Meta, realizado e % da meta atingida por dia para o setor selecionado."}
+                    : "% da meta atingida por dia para o setor selecionado."}
                 </p>
               </div>
               <div className="space-y-1">
@@ -374,35 +376,23 @@ function RelatoriosPage() {
                     ))}
                   </LineChart>
                 ) : (
-                  <ComposedChart data={dailySectorSeries}>
+                  <BarChart data={dailySectorSeries}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis dataKey="day" fontSize={11} />
-                    <YAxis yAxisId="left" fontSize={11} />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      fontSize={11}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <Tooltip
-                      formatter={(value: number | string, name: string) =>
-                        name === "% Meta" ? [`${value}%`, name] : [value, name]
-                      }
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar yAxisId="left" dataKey="Meta" fill="hsl(221 83% 53%)" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="left" dataKey="Realizado" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="pct"
-                      name="% Meta"
-                      stroke="hsl(38 92% 50%)"
-                      strokeWidth={2}
-                      dot={{ r: 3 }}
-                      connectNulls
-                    />
-                  </ComposedChart>
+                    <YAxis fontSize={11} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip formatter={(value: number) => [`${value}%`, "% Meta"]} />
+                    <Bar dataKey="pct" name="% Meta" radius={[4, 4, 0, 0]}>
+                      <LabelList dataKey="pct" position="top" formatter={(v: number | null) => (v != null ? `${v}%` : "")} fontSize={10} />
+                      {dailySectorSeries.map((entry, index) => {
+                        const pct = entry.pct ?? 0;
+                        let fill = "hsl(0 72% 51%)"; // vermelho
+                        if (pct >= 130) fill = "hsl(199 89% 48%)"; // azul
+                        else if (pct >= 100) fill = "hsl(142 71% 45%)"; // verde
+                        else if (pct >= 90) fill = "hsl(38 92% 50%)"; // amarelo
+                        return <Cell key={`cell-${index}`} fill={fill} />;
+                      })}
+                    </Bar>
+                  </BarChart>
                 )}
               </ResponsiveContainer>
             </div>
