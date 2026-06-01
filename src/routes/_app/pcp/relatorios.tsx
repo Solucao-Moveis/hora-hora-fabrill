@@ -293,8 +293,8 @@ function RelatoriosPage() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold">Funcionário do mês por setor</h3>
             <p className="text-xs text-muted-foreground">
-              Colaborador com maior % de atingimento da meta no setor (considerando
-              divisão proporcional quando há mais de um colaborador no mesmo posto).
+              Colaborador com maior % de atingimento da meta no setor, desde que tenha
+              atingido pelo menos 95% (divisão proporcional quando há mais de um colaborador no mesmo posto).
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {employeeOfMonthBySector.map((row) => (
