@@ -34,13 +34,9 @@ export const Route = createFileRoute("/_app/pcp/relatorios")({
 
 function RelatoriosPage() {
   const { isPcp } = useAuth();
-  const [from, setFrom] = useState(todayIso());
-  const [to, setTo] = useState(todayIso());
-  const [areaFilter, setAreaFilter] = useState<string>("all");
-
   // Mês selecionado para os indicadores (YYYY-MM). Default = mês atual.
   const [month, setMonth] = useState(() => todayIso().slice(0, 7));
-  const [dailySector, setDailySector] = useState<string>("all");
+  const [dailySector, setDailySector] = useState<string>("");
   const monthRange = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
     const first = new Date(y, (m ?? 1) - 1, 1);
@@ -52,29 +48,6 @@ function RelatoriosPage() {
 
   const areasQ = useQuery({ queryKey: ["areas"], queryFn: fetchAreas });
   const machinesQ = useQuery({ queryKey: ["machines", "all"], queryFn: () => fetchMachines() });
-
-  const filteredMachines = useMemo(() => {
-    const ms = machinesQ.data ?? [];
-    if (areaFilter === "all") return ms;
-    return ms.filter((m) => m.area_id === areaFilter);
-  }, [machinesQ.data, areaFilter]);
-
-  const machineIds = filteredMachines.map((m) => m.id);
-  const entriesQ = useQuery({
-    queryKey: ["entries-range", from, to, machineIds.join(",")],
-    queryFn: () => fetchEntriesRange(from, to, machineIds),
-    enabled: machineIds.length > 0,
-  });
-  const goalsQ = useQuery({
-    queryKey: ["goals-range", from, to, machineIds.join(",")],
-    queryFn: () => fetchGoalsRange(from, to, machineIds),
-    enabled: machineIds.length > 0,
-  });
-  const operatorsTodayQ = useQuery({
-    queryKey: ["operators", to, machineIds.join(",")],
-    queryFn: () => fetchOperatorsForDate(to, machineIds),
-    enabled: machineIds.length > 0,
-  });
 
   // Dados do mês inteiro (todas as máquinas) para os indicadores
   const allMachineIds = useMemo(() => (machinesQ.data ?? []).map((m) => m.id), [machinesQ.data]);
@@ -98,42 +71,17 @@ function RelatoriosPage() {
   const allMachines = machinesQ.data ?? [];
   const machineToArea = new Map(allMachines.map((m) => [m.id, m.area_id]));
 
-  const COLORS = [
-    "hsl(221 83% 53%)",
-    "hsl(142 71% 45%)",
-    "hsl(38 92% 50%)",
-    "hsl(0 72% 51%)",
-    "hsl(262 83% 58%)",
-    "hsl(178 78% 38%)",
-    "hsl(24 95% 53%)",
-    "hsl(199 89% 48%)",
-  ];
-  const areaColor = (idx: number) => COLORS[idx % COLORS.length];
-
-  // Indicador 1: Meta diária por setor (por dia do mês)
-  const dailyGoalBySector = useMemo(() => {
-    const goals = monthGoalsQ.data ?? [];
-    const rows: Record<string, number | string>[] = [];
-    for (let d = 1; d <= monthRange.days; d++) {
-      const iso = `${month}-${String(d).padStart(2, "0")}`;
-      const row: Record<string, number | string> = { day: String(d) };
-      areas.forEach((a) => (row[a.name] = 0));
-      goals
-        .filter((g) => g.goal_date === iso)
-        .forEach((g) => {
-          const areaId = machineToArea.get(g.machine_id);
-          const area = areas.find((a) => a.id === areaId);
-          if (!area) return;
-          row[area.name] = (row[area.name] as number) + g.goal;
-        });
-      rows.push(row);
-    }
-    return rows;
-  }, [monthGoalsQ.data, areas, monthRange, month, machineToArea]);
+  // Define padrão do setor para "Metalurgia" assim que as áreas carregarem
+  useEffect(() => {
+    if (dailySector) return;
+    if (areas.length === 0) return;
+    const metalurgia = areas.find((a) => a.name.toLowerCase().includes("metalurgia"));
+    setDailySector(metalurgia?.id ?? areas[0].id);
+  }, [areas, dailySector]);
 
   // Série diária do setor selecionado (meta, realizado e % meta por dia)
   const dailySectorSeries = useMemo(() => {
-    if (dailySector === "all") return [];
+    if (!dailySector) return [];
     const goals = monthGoalsQ.data ?? [];
     const entries = monthEntriesQ.data ?? [];
     const machineIdsOfArea = new Set(
