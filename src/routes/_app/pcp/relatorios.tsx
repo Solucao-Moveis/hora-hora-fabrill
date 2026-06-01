@@ -197,110 +197,12 @@ function RelatoriosPage() {
 
   if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
 
-
-  const exportDailyByArea = () => {
-    if (!entriesQ.data || !goalsQ.data) return;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(`Relatório Diário de Produção — ${formatDateBR(to)}`, 14, 16);
-    doc.setFontSize(10);
-    doc.text(`Filtro: ${areaFilter === "all" ? "Todas as áreas" : areas.find((a) => a.id === areaFilter)?.name}`, 14, 22);
-
-    const dayEntries = entriesQ.data.filter((e) => e.entry_date === to);
-    const dayGoals = goalsQ.data.filter((g) => g.goal_date === to);
-
-    let y = 30;
-    areas
-      .filter((a) => areaFilter === "all" || a.id === areaFilter)
-      .forEach((area) => {
-        const ms = filteredMachines.filter((m) => m.area_id === area.id);
-        if (!ms.length) return;
-        const rows = ms.map((m) => {
-          const goal = dayGoals.find((g) => g.machine_id === m.id)?.goal ?? 0;
-          const real = dayEntries.filter((e) => e.machine_id === m.id).reduce((s, e) => s + e.quantity, 0);
-          const op = operatorsTodayQ.data?.find((o) => o.machine_id === m.id)?.operator_name ?? "—";
-          const pct = goal > 0 ? `${Math.round((real / goal) * 100)}%` : "—";
-          return [m.name, op, String(goal), String(real), pct];
-        });
-        doc.setFontSize(11);
-        doc.text(area.name, 14, y);
-        autoTable(doc, {
-          startY: y + 2,
-          head: [["Máquina", "Operador", "Meta", "Realizado", "% Meta"]],
-          body: rows,
-          styles: { fontSize: 9 },
-          headStyles: { fillColor: [37, 99, 235] },
-        });
-        type DocWithTable = jsPDF & { lastAutoTable?: { finalY: number } };
-        y = (doc as DocWithTable).lastAutoTable?.finalY ?? y + 20;
-        y += 8;
-      });
-
-    doc.save(`producao-diaria-${to}.pdf`);
-    toast.success("PDF gerado");
-  };
-
-  const exportEfficiency = () => {
-    if (!entriesQ.data || !goalsQ.data) return;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(`Eficiência por Máquina — ${formatDateBR(from)} a ${formatDateBR(to)}`, 14, 16);
-
-    const rows = filteredMachines.map((m) => {
-      const ents = entriesQ.data!.filter((e) => e.machine_id === m.id);
-      const gs = goalsQ.data!.filter((g) => g.machine_id === m.id);
-      const totalGoal = gs.reduce((s, g) => s + g.goal, 0);
-      const totalReal = ents.reduce((s, e) => s + e.quantity, 0);
-      const pct = totalGoal > 0 ? `${Math.round((totalReal / totalGoal) * 100)}%` : "—";
-      return [m.name, String(totalGoal), String(totalReal), String(totalReal - totalGoal), pct];
-    });
-
-    autoTable(doc, {
-      startY: 22,
-      head: [["Máquina", "Meta período", "Realizado", "Desvio", "% Meta"]],
-      body: rows,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [37, 99, 235] },
-    });
-
-    doc.save(`eficiencia-${from}-a-${to}.pdf`);
-    toast.success("PDF gerado");
-  };
-
-  const exportByOperator = () => {
-    if (!entriesQ.data) return;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(`Histórico por Operador — ${formatDateBR(from)} a ${formatDateBR(to)}`, 14, 16);
-
-    const opMap = new Map<string, number>();
-    entriesQ.data.forEach((e) => {
-      const op = operatorsTodayQ.data?.find((o) => o.machine_id === e.machine_id)?.operator_name?.trim();
-      const key = op || "(sem operador)";
-      opMap.set(key, (opMap.get(key) ?? 0) + e.quantity);
-    });
-
-    const rows = Array.from(opMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, q]) => [name, String(q)]);
-
-    autoTable(doc, {
-      startY: 22,
-      head: [["Operador", "Total produzido"]],
-      body: rows,
-      headStyles: { fillColor: [37, 99, 235] },
-    });
-
-    doc.save(`operadores-${from}-a-${to}.pdf`);
-    toast.success("PDF gerado");
-  };
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Indicadores da Produção</h1>
         <p className="text-sm text-muted-foreground">
-          Acompanhe os principais indicadores do mês e gere relatórios em PDF.
+          Acompanhe os principais indicadores do mês.
         </p>
       </div>
 
