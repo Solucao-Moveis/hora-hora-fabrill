@@ -181,7 +181,7 @@ function RelatoriosPage() {
           real: v.real,
           pct: v.meta > 0 ? (v.real / v.meta) * 100 : 0,
         }))
-        .filter((x) => x.meta > 0)
+        .filter((x) => x.meta > 0 && x.pct >= 95)
         .sort((x, y) => y.pct - x.pct);
 
       const top = ranked[0];
