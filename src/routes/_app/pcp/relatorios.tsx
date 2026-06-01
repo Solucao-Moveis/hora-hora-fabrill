@@ -106,7 +106,7 @@ function RelatoriosPage() {
   const totalBySector = useMemo(() => {
     const goals = monthGoalsQ.data ?? [];
     const entries = monthEntriesQ.data ?? [];
-    return areas.map((a) => {
+    const rows = areas.map((a) => {
       const machineIdsOfArea = allMachines.filter((m) => m.area_id === a.id).map((m) => m.id);
       const meta = goals
         .filter((g) => machineIdsOfArea.includes(g.machine_id))
@@ -114,8 +114,19 @@ function RelatoriosPage() {
       const realizado = entries
         .filter((e) => machineIdsOfArea.includes(e.machine_id))
         .reduce((s, e) => s + e.quantity, 0);
-      return { setor: a.name, Meta: meta, Realizado: realizado };
+      const pct = meta > 0 ? Math.round((realizado / meta) * 100) : 0;
+      return { setor: a.name, Meta: meta, Realizado: realizado, pct, isBest: false };
     });
+    let bestIdx = -1;
+    let bestPct = -1;
+    rows.forEach((r, i) => {
+      if (r.Meta > 0 && r.pct > bestPct) {
+        bestPct = r.pct;
+        bestIdx = i;
+      }
+    });
+    if (bestIdx >= 0) rows[bestIdx].isBest = true;
+    return rows;
   }, [monthGoalsQ.data, monthEntriesQ.data, areas, allMachines]);
 
   // Indicador 3: Funcionário do mês por setor
@@ -278,12 +289,41 @@ function RelatoriosPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={totalBySector}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="setor" fontSize={11} />
+                  <XAxis
+                    dataKey="setor"
+                    fontSize={11}
+                    tick={(props) => {
+                      const { x, y, payload } = props;
+                      const row = totalBySector.find((r) => r.setor === payload.value);
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <text
+                            x={0}
+                            y={0}
+                            dy={12}
+                            textAnchor="middle"
+                            fontSize={11}
+                            fill="hsl(var(--muted-foreground))"
+                          >
+                            {payload.value}
+                            {row?.isBest ? " ⭐" : ""}
+                          </text>
+                        </g>
+                      );
+                    }}
+                  />
                   <YAxis fontSize={11} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="Meta" fill="hsl(221 83% 53%)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Realizado" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Realizado" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]}>
+                    <LabelList
+                      dataKey="pct"
+                      position="top"
+                      formatter={(v: number) => `${v}%`}
+                      fontSize={11}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
