@@ -228,9 +228,7 @@ function RelatoriosPage() {
               <div>
                 <h3 className="text-sm font-semibold">Meta diária por setor</h3>
                 <p className="text-xs text-muted-foreground">
-                  {dailySector === "all"
-                    ? "Soma das metas cadastradas para cada dia do mês, agrupada por setor."
-                    : "% da meta atingida por dia para o setor selecionado."}
+                  % da meta atingida por dia para o setor selecionado.
                 </p>
               </div>
               <div className="space-y-1">
@@ -240,7 +238,6 @@ function RelatoriosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os setores</SelectItem>
                     {areas.map((a) => (
                       <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
@@ -250,26 +247,7 @@ function RelatoriosPage() {
             </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                {dailySector === "all" ? (
-                  <LineChart data={dailyGoalBySector}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="day" fontSize={11} />
-                    <YAxis fontSize={11} />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    {areas.map((a, idx) => (
-                      <Line
-                        key={a.id}
-                        type="monotone"
-                        dataKey={a.name}
-                        stroke={areaColor(idx)}
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    ))}
-                  </LineChart>
-                ) : (
-                  <BarChart data={dailySectorSeries}>
+                <BarChart data={dailySectorSeries}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis dataKey="day" fontSize={11} />
                     <YAxis fontSize={11} tickFormatter={(v) => `${v}%`} />
@@ -285,8 +263,7 @@ function RelatoriosPage() {
                         return <Cell key={`cell-${index}`} fill={fill} />;
                       })}
                     </Bar>
-                  </BarChart>
-                )}
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -351,74 +328,6 @@ function RelatoriosPage() {
         </CardContent>
       </Card>
 
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">Relatórios em PDF</h2>
-        <p className="text-sm text-muted-foreground">Gere relatórios detalhados do período selecionado.</p>
-      </div>
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">Filtros</CardTitle></CardHeader>
-        <CardContent className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label>De</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-10 w-[180px]" />
-          </div>
-          <div className="space-y-1">
-            <Label>Até</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-10 w-[180px]" />
-          </div>
-          <div className="space-y-1">
-            <Label>Área</Label>
-            <Select value={areaFilter} onValueChange={setAreaFilter}>
-              <SelectTrigger className="h-10 w-[220px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader><CardTitle className="text-base">Produção diária por área</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Resumo do dia <strong>{formatDateBR(to)}</strong> com meta, realizado e operador por máquina.
-            </p>
-            <Button onClick={exportDailyByArea} className="w-full">
-              <FileDown className="mr-2 h-4 w-4" /> Gerar PDF
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Eficiência por máquina</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Total realizado vs meta no período selecionado.
-            </p>
-            <Button onClick={exportEfficiency} className="w-full">
-              <FileDown className="mr-2 h-4 w-4" /> Gerar PDF
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Histórico por operador</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Total produzido por operador no período (com base no operador atual da máquina).
-            </p>
-            <Button onClick={exportByOperator} className="w-full">
-              <FileDown className="mr-2 h-4 w-4" /> Gerar PDF
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <p className="text-xs text-muted-foreground">
-        Lembrete: cada dia tem {TIME_SLOTS.length} intervalos horários (07:30 às 17:00).
-      </p>
     </div>
   );
 }
