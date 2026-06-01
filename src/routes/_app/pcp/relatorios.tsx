@@ -1,25 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchAreas,
   fetchMachines,
   fetchEntriesRange,
   fetchGoalsRange,
-  fetchOperatorsForDate,
   fetchOperatorsRange,
 } from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { todayIso, formatDateBR, TIME_SLOTS } from "@/lib/time-slots";
+import { todayIso } from "@/lib/time-slots";
 import { useAuth } from "@/lib/auth-context";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { FileDown, Trophy } from "lucide-react";
-import { toast } from "sonner";
+import { Trophy } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -29,9 +24,6 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
-  LineChart,
-  Line,
-  ComposedChart,
   LabelList,
   Cell,
 } from "recharts";
