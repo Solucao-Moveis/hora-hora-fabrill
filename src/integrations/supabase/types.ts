@@ -441,6 +441,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_pcp: { Args: { _user_id: string }; Returns: boolean }
       is_qualidade: { Args: { _user_id: string }; Returns: boolean }
       user_can_access_area: {
