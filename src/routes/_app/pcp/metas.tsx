@@ -10,6 +10,8 @@ import { todayIso, formatDateBR } from "@/lib/time-slots";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Lock, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pcp/metas")({
@@ -17,9 +19,12 @@ export const Route = createFileRoute("/_app/pcp/metas")({
 });
 
 function MetasPage() {
-  const { user, isPcp } = useAuth();
+  const { user, isPcp, isAdmin } = useAuth();
   const [date, setDate] = useState(todayIso());
   const qc = useQueryClient();
+  // Local pending edits per machine — saved in batch by the sector button
+  const [pending, setPending] = useState<Record<string, number>>({});
+  const [savingArea, setSavingArea] = useState<string | null>(null);
 
   const areasQ = useQuery({ queryKey: ["areas"], queryFn: fetchAreas });
   const machinesQ = useQuery({
@@ -35,7 +40,7 @@ function MetasPage() {
     queryFn: () => fetchOvertime(date),
   });
 
-  if (!isPcp) return <div>Acesso restrito ao PCP.</div>;
+  if (!isPcp && !isAdmin) return <div>Acesso restrito ao PCP.</div>;
 
   const totalMeta = (goalsQ.data ?? []).reduce((s, g) => s + g.goal, 0);
   const totalMachines = machinesQ.data?.length ?? 0;
@@ -85,8 +90,10 @@ function MetasPage() {
           const areaMachines = (machinesQ.data ?? []).filter((m) => m.area_id === area.id);
           const areaTotal = areaMachines.reduce((s, m) => {
             const g = goalsQ.data?.find((x) => x.machine_id === m.id);
-            return s + (g?.goal ?? 0);
+            const pendingVal = pending[m.id];
+            return s + (pendingVal ?? g?.goal ?? 0);
           }, 0);
+          const areaHasPending = areaMachines.some((m) => pending[m.id] !== undefined);
           return (
             <Card key={area.id}>
               <CardHeader className="flex flex-row items-center justify-between bg-muted/40 py-3">
@@ -96,24 +103,53 @@ function MetasPage() {
               <CardContent className="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-2 lg:grid-cols-3">
                 {areaMachines.map((m) => {
                   const g = goalsQ.data?.find((x) => x.machine_id === m.id);
+                  const hasSavedGoal = !!g && g.goal > 0;
+                  const locked = hasSavedGoal && !isAdmin;
                   return (
                     <GoalInput
                       key={m.id}
                       machineName={m.name}
                       goal={g?.goal ?? 0}
-                      onSave={async (val) => {
-                        try {
-                          await upsertGoal(m.id, date, val, user!.id);
-                          qc.invalidateQueries({ queryKey: ["goals", date, "all"] });
-                          toast.success("Meta salva");
-                        } catch (e: unknown) {
-                          const er = e as { message?: string };
-                          toast.error(er.message ?? "Erro ao salvar meta");
-                        }
-                      }}
+                      pendingValue={pending[m.id]}
+                      locked={locked}
+                      onChange={(val) =>
+                        setPending((p) => ({ ...p, [m.id]: val }))
+                      }
                     />
                   );
                 })}
+                <div className="col-span-full flex justify-end pt-2">
+                  <Button
+                    size="sm"
+                    disabled={!areaHasPending || savingArea === area.id}
+                    onClick={async () => {
+                      setSavingArea(area.id);
+                      try {
+                        const toSave = areaMachines
+                          .map((m) => ({ id: m.id, val: pending[m.id] }))
+                          .filter((x) => x.val !== undefined);
+                        for (const item of toSave) {
+                          await upsertGoal(item.id, date, item.val!, user!.id);
+                        }
+                        setPending((p) => {
+                          const next = { ...p };
+                          for (const item of toSave) delete next[item.id];
+                          return next;
+                        });
+                        await qc.invalidateQueries({ queryKey: ["goals", date, "all"] });
+                        toast.success(`Metas de ${area.name} salvas`);
+                      } catch (e: unknown) {
+                        const er = e as { message?: string };
+                        toast.error(er.message ?? "Erro ao salvar metas");
+                      } finally {
+                        setSavingArea(null);
+                      }
+                    }}
+                  >
+                    <Save className="h-4 w-4" />
+                    {savingArea === area.id ? "Salvando..." : `Salvar metas de ${area.name}`}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
@@ -126,25 +162,30 @@ function MetasPage() {
 function GoalInput({
   machineName,
   goal,
-  onSave,
+  pendingValue,
+  locked,
+  onChange,
 }: {
   machineName: string;
   goal: number;
-  onSave: (v: number) => Promise<void>;
+  pendingValue: number | undefined;
+  locked: boolean;
+  onChange: (v: number) => void;
 }) {
-  const [val, setVal] = useState<string>(String(goal));
-  useEffect(() => setVal(String(goal)), [goal]);
-
-  const save = async () => {
-    const num = Number(val);
-    if (Number.isNaN(num) || num < 0) return;
-    if (num === goal) return;
-    await onSave(num);
-  };
+  const displayVal = pendingValue !== undefined ? String(pendingValue) : String(goal);
+  const [val, setVal] = useState<string>(displayVal);
+  useEffect(() => setVal(displayVal), [displayVal]);
 
   return (
     <div className="rounded-lg border bg-card p-3">
-      <div className="text-sm font-medium">{machineName}</div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-medium">{machineName}</div>
+        {locked && (
+          <span className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <Lock className="h-3 w-3" /> bloqueada
+          </span>
+        )}
+      </div>
       <div className="mt-2 flex items-center gap-2">
         <span className="text-xs uppercase tracking-wide text-muted-foreground">Meta</span>
         <Input
@@ -152,11 +193,20 @@ function GoalInput({
           min={0}
           inputMode="numeric"
           value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={save}
+          disabled={locked}
+          onChange={(e) => {
+            setVal(e.target.value);
+            const num = Number(e.target.value);
+            if (!Number.isNaN(num) && num >= 0) onChange(num);
+          }}
           className="h-10 text-center font-bold"
         />
       </div>
+      {locked && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Somente um administrador pode alterar uma meta já salva.
+        </p>
+      )}
     </div>
   );
 }
