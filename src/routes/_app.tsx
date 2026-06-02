@@ -42,8 +42,8 @@ function AppLayout() {
             Sua conta foi criada, mas o PCP ainda não atribuiu seu papel.
             Entre em contato com o PCP para liberar seu acesso.
           </p>
-          <Button variant="outline" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" /> Sair
+          <Button asChild variant="outline">
+            <a href={ERP_URL}><Home className="mr-2 h-4 w-4" /> Voltar ao ERP</a>
           </Button>
         </div>
       </div>
@@ -105,9 +105,6 @@ function AppLayout() {
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">Voltar ao ERP</span>
             </a>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto border-t bg-card px-2 py-1 md:hidden">
