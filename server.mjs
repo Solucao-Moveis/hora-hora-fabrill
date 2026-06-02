@@ -13,7 +13,14 @@ import { join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Default export of the built worker is the SSR handler: { fetch(req, env, ctx) }.
-import handler from "./dist/server/index.js";
+// O nome do arquivo de saída varia com a versão do @lovable.dev/vite-tanstack-config
+// (server.js nas 2.x, index.js nas 1.x) — tenta os dois pra não quebrar no deploy.
+let handler;
+try {
+  ({ default: handler } = await import("./dist/server/server.js"));
+} catch {
+  ({ default: handler } = await import("./dist/server/index.js"));
+}
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const CLIENT_DIR = join(ROOT, "dist", "client");
