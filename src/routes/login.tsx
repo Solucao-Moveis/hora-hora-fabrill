@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Factory } from "lucide-react";
+import logo from "@/assets/logo-solucao-moveis.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -54,12 +54,10 @@ function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-secondary/40 to-accent/30 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Factory className="h-6 w-6" />
-          </div>
+          <img src={logo} alt="Solução Móveis" className="mx-auto h-14 w-auto object-contain" />
           <CardTitle className="text-2xl">Produção Hora a Hora</CardTitle>
           <CardDescription>Móveis Escolares — PCP & Líderes de Área</CardDescription>
         </CardHeader>
