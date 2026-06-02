@@ -44,7 +44,8 @@ function LoginPage() {
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName || email },
+        // SMERP: 'app' diz ao trigger do banco que este cadastro é do hora a hora (fabrill)
+        data: { full_name: fullName || email, app: "fabrill" },
       },
     });
     setBusy(false);

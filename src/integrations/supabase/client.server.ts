@@ -20,6 +20,8 @@ function createSupabaseAdminClient() {
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    // SMERP: schema 'fabrill' do banco unificado
+    db: { schema: 'fabrill' as any },
     auth: {
       storage: undefined,
       persistSession: false,

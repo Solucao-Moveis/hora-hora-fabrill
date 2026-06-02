@@ -2,8 +2,11 @@ import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tansta
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Factory, LogOut, Target, ClipboardList, BarChart3, Users, AlertTriangle } from "lucide-react";
+import { Factory, LogOut, Target, ClipboardList, BarChart3, Users, AlertTriangle, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// SMERP: hub central (para o botão "Voltar ao ERP")
+const ERP_URL = "https://solucaomoveis-erp.h5xdag.easypanel.host/";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -98,6 +101,10 @@ function AppLayout() {
           </nav>
           <div className="ml-auto flex items-center gap-2">
             <span className="hidden text-xs text-muted-foreground sm:inline">{user.email}</span>
+            <a href={ERP_URL} className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Voltar ao ERP</span>
+            </a>
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
             </Button>

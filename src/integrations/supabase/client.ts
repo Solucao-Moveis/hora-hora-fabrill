@@ -19,6 +19,8 @@ function createSupabaseClient() {
   }
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    // SMERP: as tabelas deste app vivem no schema 'fabrill' do banco unificado
+    db: { schema: 'fabrill' as any },
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       persistSession: true,

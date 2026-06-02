@@ -47,6 +47,8 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       SUPABASE_URL!,
       SUPABASE_PUBLISHABLE_KEY!,
       {
+        // SMERP: schema 'fabrill' do banco unificado
+        db: { schema: 'fabrill' as any },
         global: {
           headers: {
             Authorization: `Bearer ${token}`,
