@@ -227,7 +227,7 @@ function CollaboratorsCard({
             <div className="space-y-1">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Área</Label>
               <Select value={newArea} onValueChange={setNewArea}>
-                <SelectTrigger className="h-10 w-[200px]">
+                <SelectTrigger className="h-10 w-full sm:w-[200px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

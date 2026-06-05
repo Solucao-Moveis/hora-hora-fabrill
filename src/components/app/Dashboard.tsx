@@ -576,7 +576,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
           <div className="space-y-1">
             <div className="text-xs uppercase tracking-wide text-muted-foreground">Área</div>
             <Select value={areaFilter} onValueChange={(v) => { setAreaFilter(v); setMachineFilter("all"); }}>
-              <SelectTrigger className="h-10 w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as áreas</SelectItem>
                 {visibleAreas.map((a) => (
@@ -589,7 +589,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         <div className="space-y-1">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Máquina</div>
           <Select value={machineFilter} onValueChange={setMachineFilter}>
-            <SelectTrigger className="h-10 w-[260px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-10 w-full sm:w-[260px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               {allMachines
