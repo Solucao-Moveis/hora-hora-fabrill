@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Home, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Sidebar,
   SidebarContent,
@@ -136,7 +137,10 @@ export function AppShell({
           <SidebarTrigger className="h-8 w-8" />
           <Separator orientation="vertical" className="mr-1 h-5" />
           <h1 className="truncate text-sm font-semibold">{pageTitle ?? brand.title}</h1>
-          {headerRight && <div className="ml-auto flex items-center gap-1">{headerRight}</div>}
+          <div className="ml-auto flex items-center gap-1">
+            {headerRight}
+            <ThemeToggle />
+          </div>
         </header>
         <main className="flex-1">
           <div className="mx-auto w-full max-w-7xl p-4 md:p-8">{children}</div>

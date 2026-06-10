@@ -112,11 +112,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+// Anti-flash: aplica .dark no <html> ANTES da pintura. Lê o tema vindo do Hub
+// (#smerp_theme), senão o que estiver salvo, senão o tema do sistema.
+const THEME_INIT = `(function(){try{var K='smerp-theme';var h=location.hash||'';var t=null;if(h.indexOf('smerp_theme=')>-1){t=new URLSearchParams(h.replace(/^#/,'')).get('smerp_theme');if(t==='dark'||t==='light')localStorage.setItem(K,t);}t=localStorage.getItem(K)||'light';if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})();`;
+
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
       <body>
         {children}

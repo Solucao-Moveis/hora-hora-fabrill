@@ -115,7 +115,49 @@
   --sidebar-ring: oklch(0.685 0.165 47);
 }
 
-/* Identidade unificada SMERP: somente tema claro (sem bloco .dark). */
+.dark {
+  /* === Modo escuro SMERP — espelha o :root claro com valores escuros. === */
+  --background: oklch(0.16 0.012 274);
+  --foreground: oklch(0.95 0.01 250);
+  --card: oklch(0.205 0.014 274);
+  --card-foreground: oklch(0.95 0.01 250);
+  --popover: oklch(0.205 0.014 274);
+  --popover-foreground: oklch(0.95 0.01 250);
+  --primary: oklch(0.70 0.165 47);
+  --primary-foreground: oklch(0.16 0.02 274);
+  --secondary: oklch(0.26 0.02 274);
+  --secondary-foreground: oklch(0.92 0.01 250);
+  --muted: oklch(0.24 0.015 274);
+  --muted-foreground: oklch(0.71 0.02 262);
+  --accent: oklch(0.30 0.04 55);
+  --accent-foreground: oklch(0.90 0.05 60);
+  --destructive: oklch(0.62 0.20 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.66 0.15 150);
+  --success-foreground: oklch(0.16 0.02 274);
+  --warning: oklch(0.80 0.14 75);
+  --warning-foreground: oklch(0.18 0.03 75);
+  --caution: oklch(0.80 0.14 75);
+  --caution-foreground: oklch(0.18 0.03 75);
+  --exceed: oklch(0.64 0.20 25);
+  --exceed-foreground: oklch(0.98 0 0);
+  --border: oklch(0.30 0.012 270);
+  --input: oklch(0.30 0.012 270);
+  --ring: oklch(0.70 0.165 47);
+  --chart-1: oklch(0.70 0.165 47);
+  --chart-2: oklch(0.66 0.15 150);
+  --chart-3: oklch(0.80 0.14 75);
+  --chart-4: oklch(0.62 0.20 25);
+  --chart-5: oklch(0.70 0.13 320);
+  --sidebar: oklch(0.185 0.012 274);
+  --sidebar-foreground: oklch(0.92 0.01 250);
+  --sidebar-primary: oklch(0.70 0.165 47);
+  --sidebar-primary-foreground: oklch(0.16 0.02 274);
+  --sidebar-accent: oklch(0.28 0.03 55);
+  --sidebar-accent-foreground: oklch(0.90 0.05 60);
+  --sidebar-border: oklch(0.30 0.012 270);
+  --sidebar-ring: oklch(0.70 0.165 47);
+}
 
 @layer base {
   * {
