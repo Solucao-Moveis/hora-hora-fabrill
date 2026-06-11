@@ -14,9 +14,12 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppLayout() {
-  const { user, loading, isPcp, isLider, isQualidade, areas } = useAuth();
+  const { user, loading, isPcp, isLider, isQualidade, isAdmin, areas } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Administrador enxerga tudo: mesmo conjunto de telas do PCP.
+  const fullAccess = isPcp || isAdmin;
 
   useEffect(() => {
     if (loading) return;
@@ -31,7 +34,7 @@ function AppLayout() {
     );
   }
 
-  if (!isPcp && !isLider && !isQualidade) {
+  if (!fullAccess && !isLider && !isQualidade) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="max-w-md text-center space-y-4">
@@ -51,7 +54,7 @@ function AppLayout() {
     );
   }
 
-  const navItems: NavItem[] = isPcp
+  const navItems: NavItem[] = fullAccess
     ? [
         { to: "/pcp/metas", label: "Metas", icon: Target },
         { to: "/pcp/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -66,7 +69,9 @@ function AppLayout() {
           { to: "/lider/dashboard", label: "Dashboard", icon: BarChart3 },
         ];
 
-  const roleLabel = isPcp
+  const roleLabel = isAdmin
+    ? "Administrador"
+    : isPcp
     ? "PCP"
     : isQualidade
       ? "Qualidade"
