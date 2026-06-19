@@ -304,6 +304,19 @@ function DeviationRow({
 }) {
   const [open, setOpen] = useState(false);
 
+  // Assistências (RNC) do módulo Engenharia vinculadas a este desvio (vínculo mútuo).
+  const linksQ = useQuery({
+    queryKey: ["deviation-assist", d.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as {
+        rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+      }).rpc("assistencias_do_desvio", { _desvio_id: d.id });
+      if (error) throw error;
+      return (data ?? []) as { id: string; numero: string; data: string; cliente: string | null; fornecedor: string | null }[];
+    },
+    enabled: open,
+  });
+
   const remove = async () => {
     if (!confirm("Excluir este desvio?")) return;
     const { error } = await supabase.from("production_deviations").delete().eq("id", d.id);
@@ -332,6 +345,20 @@ function DeviationRow({
           <div><span className="text-muted-foreground">Desvio:</span> {d.deviation}</div>
           <div><span className="text-muted-foreground">Plano de ação:</span> {d.action_plan || "—"}</div>
           <div><span className="text-muted-foreground">Responsável:</span> {d.action_responsible || "—"}</div>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-muted-foreground">Assistências (RNC) vinculadas:</span>
+            {linksQ.isLoading ? (
+              <span className="text-muted-foreground">carregando…</span>
+            ) : (linksQ.data && linksQ.data.length > 0) ? (
+              linksQ.data.map((a) => (
+                <Badge key={a.id} variant="outline" className="gap-1">
+                  🔗 {a.numero}{a.cliente ? ` · ${a.cliente}` : ""}
+                </Badge>
+              ))
+            ) : (
+              <span className="text-muted-foreground">nenhuma</span>
+            )}
+          </div>
           {d.photos.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2">
               {d.photos.map((url, i) => (
