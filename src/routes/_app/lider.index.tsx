@@ -133,33 +133,41 @@ function LiderPage() {
             <div key={area.id} className="space-y-3">
               <h2 className="text-lg font-semibold">{area.name}</h2>
               <div className="grid gap-4">
-                {areaMachines.map((m) => (
-                  <MachineCard
-                    key={m.id}
-                    machine={m}
-                    date={date}
-                    userId={user!.id}
-                    goal={effectiveDayGoal(
-                      goalsQ.data?.find((g) => g.machine_id === m.id)?.goal ?? 0,
-                      overtime,
-                      date,
-                    )}
-                    collaboratorOptions={areaOptions}
-                    operators={(operatorsQ.data ?? [])
-                      .filter((o) => o.machine_id === m.id)
-                      .map((o) => (o.operator_name ?? "").trim())
-                      .filter((n) => n.length > 0)}
-                    entries={(entriesQ.data ?? []).filter((e) => e.machine_id === m.id)}
-                    justification={
-                      justifQ.data?.find((j) => j.machine_id === m.id)?.justification ?? ""
-                    }
-                    onChanged={() => {
-                      qc.invalidateQueries({ queryKey: ["entries", date, machineIds] });
-                      qc.invalidateQueries({ queryKey: ["operators", date, machineIds] });
-                      qc.invalidateQueries({ queryKey: ["justifications", date, machineIds] });
-                    }}
-                  />
-                ))}
+                {areaMachines.map((m) => {
+                  const myOps = (operatorsQ.data ?? [])
+                    .filter((o) => o.machine_id === m.id)
+                    .map((o) => (o.operator_name ?? "").trim())
+                    .filter((n) => n.length > 0);
+                  const takenByOther = (operatorsQ.data ?? [])
+                    .filter((o) => o.machine_id !== m.id)
+                    .map((o) => (o.operator_name ?? "").trim())
+                    .filter((n) => n.length > 0 && !myOps.includes(n));
+                  return (
+                    <MachineCard
+                      key={m.id}
+                      machine={m}
+                      date={date}
+                      userId={user!.id}
+                      goal={effectiveDayGoal(
+                        goalsQ.data?.find((g) => g.machine_id === m.id)?.goal ?? 0,
+                        overtime,
+                        date,
+                      )}
+                      collaboratorOptions={areaOptions}
+                      operators={myOps}
+                      takenByOther={takenByOther}
+                      entries={(entriesQ.data ?? []).filter((e) => e.machine_id === m.id)}
+                      justification={
+                        justifQ.data?.find((j) => j.machine_id === m.id)?.justification ?? ""
+                      }
+                      onChanged={() => {
+                        qc.invalidateQueries({ queryKey: ["entries", date, machineIds] });
+                        qc.invalidateQueries({ queryKey: ["operators", date, machineIds] });
+                        qc.invalidateQueries({ queryKey: ["justifications", date, machineIds] });
+                      }}
+                    />
+                  );
+                })}
               </div>
             </div>
           );
@@ -358,6 +366,7 @@ function MachineCard({
   goal,
   collaboratorOptions,
   operators,
+  takenByOther,
   entries,
   justification,
   onChanged,
@@ -368,6 +377,7 @@ function MachineCard({
   goal: number;
   collaboratorOptions: string[];
   operators: string[];
+  takenByOther: string[];
   entries: { hour_slot: number; quantity: number; observation: string | null }[];
   justification: string;
   onChanged: () => void;
@@ -446,6 +456,7 @@ function MachineCard({
               options={collaboratorOptions}
               selected={selectedOps}
               onChange={saveOperators}
+              takenByOther={takenByOther}
               placeholder={
                 collaboratorOptions.length === 0
                   ? "Cadastre colaboradores acima"

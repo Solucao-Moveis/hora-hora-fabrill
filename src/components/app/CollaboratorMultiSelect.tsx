@@ -17,6 +17,7 @@ type Props = {
   options: string[];
   selected: string[];
   onChange: (next: string[]) => void;
+  takenByOther?: string[];
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -26,6 +27,7 @@ export function CollaboratorMultiSelect({
   options,
   selected,
   onChange,
+  takenByOther = [],
   placeholder = "Selecionar colaboradores",
   disabled,
   className,
@@ -33,6 +35,7 @@ export function CollaboratorMultiSelect({
   const [open, setOpen] = useState(false);
 
   const toggle = (name: string) => {
+    if (takenByOther.includes(name) && !selected.includes(name)) return;
     if (selected.includes(name)) onChange(selected.filter((s) => s !== name));
     else onChange([...selected, name]);
   };
@@ -66,15 +69,27 @@ export function CollaboratorMultiSelect({
               <CommandGroup>
                 {options.map((name) => {
                   const isSel = selected.includes(name);
+                  const isTaken = takenByOther.includes(name) && !isSel;
                   return (
-                    <CommandItem key={name} value={name} onSelect={() => toggle(name)}>
+                    <CommandItem
+                      key={name}
+                      value={name}
+                      onSelect={() => toggle(name)}
+                      disabled={isTaken}
+                      className={cn(isTaken && "opacity-50 cursor-not-allowed")}
+                    >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
                           isSel ? "opacity-100" : "opacity-0",
                         )}
                       />
-                      {name}
+                      <span className="flex-1">{name}</span>
+                      {isTaken && (
+                        <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          em uso
+                        </span>
+                      )}
                     </CommandItem>
                   );
                 })}
