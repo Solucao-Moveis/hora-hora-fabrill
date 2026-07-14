@@ -1,6 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type Area = { id: string; name: string; slug: string; sort_order: number };
+export type Area = { id: string; name: string; slug: string; sort_order: number; mode: 'production' | 'tasks' };
+
+export type PrototypeTask = {
+  id: string;
+  area_id: string;
+  task_date: string;
+  hour_slot: number;
+  description: string;
+  status: 'nao_feito' | 'incompleto' | 'feito';
+  observation: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+};
 export type Machine = { id: string; area_id: string; name: string; sort_order: number };
 export type Goal = { id: string; machine_id: string; goal_date: string; goal: number };
 export type Operator = { id: string; machine_id: string; log_date: string; operator_name: string };
@@ -279,6 +292,53 @@ export async function upsertJustification(
       },
       { onConflict: "machine_id,justification_date" },
     );
+  if (error) throw error;
+}
+
+// ============================================================
+// Prototype Tasks (áreas mode='tasks', ex: Prototipagem)
+// ============================================================
+
+export async function fetchPrototypeTasks(areaIds: string[], date: string): Promise<PrototypeTask[]> {
+  const { data, error } = await supabase
+    .from("prototype_tasks")
+    .select("*")
+    .in("area_id", areaIds)
+    .eq("task_date", date)
+    .order("hour_slot")
+    .order("created_at");
+  if (error) throw error;
+  return (data ?? []) as PrototypeTask[];
+}
+
+export async function createPrototypeTask(
+  area_id: string,
+  task_date: string,
+  hour_slot: number,
+  description: string,
+  user_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("prototype_tasks")
+    .insert({ area_id, task_date, hour_slot, description: description.trim(), created_by: user_id });
+  if (error) throw error;
+}
+
+export async function updatePrototypeTaskStatus(
+  id: string,
+  status: 'nao_feito' | 'incompleto' | 'feito',
+  observation: string | null,
+  user_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("prototype_tasks")
+    .update({ status, observation: observation?.trim() || null, updated_by: user_id, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deletePrototypeTask(id: string): Promise<void> {
+  const { error } = await supabase.from("prototype_tasks").delete().eq("id", id);
   if (error) throw error;
 }
 

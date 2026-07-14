@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "pcp" | "lider" | "qualidade" | "administrador";
 
-export type AreaRef = { id: string; name: string; slug: string };
+export type AreaRef = { id: string; name: string; slug: string; mode: 'production' | 'tasks' };
 
 type AuthContextValue = {
   session: Session | null;
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from("user_roles").select("role").eq("user_id", uid),
       supabase
         .from("user_areas")
-        .select("area_id, areas:areas(id,name,slug)")
+        .select("area_id, areas:areas(id,name,slug,mode)")
         .eq("user_id", uid),
     ]);
     setRoles(((rolesData ?? []) as { role: Role }[]).map((r) => r.role));

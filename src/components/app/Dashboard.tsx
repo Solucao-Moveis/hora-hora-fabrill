@@ -10,6 +10,7 @@ import {
   fetchJustificationsForDate,
   upsertJustification,
   fetchLeadersByArea,
+  fetchPrototypeTasks,
   type Area,
   type Machine,
 } from "@/lib/queries";
@@ -493,6 +494,16 @@ export function Dashboard({ restrictAreaIds }: Props) {
     queryFn: fetchLeadersByArea,
   });
 
+  const taskAreaIds = useMemo(
+    () => visibleAreas.filter((a) => a.mode === 'tasks').map((a) => a.id),
+    [visibleAreas],
+  );
+  const protoTasksQ = useQuery({
+    queryKey: ["prototype_tasks", taskAreaIds, date],
+    queryFn: () => fetchPrototypeTasks(taskAreaIds, date),
+    enabled: taskAreaIds.length > 0,
+  });
+
   const goals = goalsQ.data ?? [];
   const entries = entriesQ.data ?? [];
   const operators = operatorsQ.data ?? [];
@@ -725,6 +736,13 @@ export function Dashboard({ restrictAreaIds }: Props) {
         </CardContent>
       </Card>
 
+      {taskAreaIds.length > 0 && (protoTasksQ.data?.length ?? 0) > 0 && (
+        <ProtoTasksSummaryCard
+          areas={visibleAreas.filter((a) => a.mode === 'tasks')}
+          tasks={protoTasksQ.data ?? []}
+        />
+      )}
+
       <ObservationsCard
         machines={filteredMachines}
         areas={visibleAreas}
@@ -741,6 +759,61 @@ export function Dashboard({ restrictAreaIds }: Props) {
         date={date}
       />
     </div>
+  );
+}
+
+function ProtoTasksSummaryCard({
+  areas,
+  tasks,
+}: {
+  areas: Area[];
+  tasks: { area_id: string; hour_slot: number; description: string; status: string; observation: string | null }[];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Tarefas — Prototipagem</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {areas.map((area) => {
+          const areaTasks = tasks.filter((t) => t.area_id === area.id);
+          const feitas = areaTasks.filter((t) => t.status === 'feito').length;
+          const incompletas = areaTasks.filter((t) => t.status === 'incompleto').length;
+          const naoFeitas = areaTasks.filter((t) => t.status === 'nao_feito').length;
+          return (
+            <div key={area.id} className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold">{area.name}</span>
+                <Badge className="bg-success text-success-foreground text-[10px]">{feitas} feitas</Badge>
+                {incompletas > 0 && <Badge className="bg-warning text-warning-foreground text-[10px]">{incompletas} incompletas</Badge>}
+                {naoFeitas > 0 && <Badge variant="destructive" className="text-[10px]">{naoFeitas} não feitas</Badge>}
+              </div>
+              <div className="space-y-1">
+                {areaTasks.map((t, i) => {
+                  const icon = t.status === 'feito' ? '✓' : t.status === 'incompleto' ? '!' : '×';
+                  const color = t.status === 'feito'
+                    ? 'text-success'
+                    : t.status === 'incompleto'
+                    ? 'text-warning'
+                    : 'text-destructive';
+                  return (
+                    <div key={i} className="flex items-start gap-2 rounded border bg-muted/30 px-2 py-1 text-sm">
+                      <span className={cn("font-bold shrink-0", color)}>{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <span>{t.description}</span>
+                        {t.status === 'incompleto' && t.observation && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{t.observation}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }
 

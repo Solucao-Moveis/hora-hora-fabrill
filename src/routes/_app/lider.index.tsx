@@ -16,8 +16,13 @@ import {
   createCollaborator,
   updateCollaborator,
   deleteCollaborator,
+  fetchPrototypeTasks,
+  createPrototypeTask,
+  updatePrototypeTaskStatus,
+  deletePrototypeTask,
   type Collaborator,
   type Machine,
+  type PrototypeTask,
 } from "@/lib/queries";
 import { todayIso, formatDateBR, getApontamentoSlots, effectiveDayGoal } from "@/lib/time-slots";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, UserMinus, UserCheck } from "lucide-react";
+import { Trash2, Plus, UserMinus, UserCheck, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -86,6 +91,14 @@ function LiderPage() {
     queryFn: () => fetchCollaborators(areaIds),
     enabled: areaIds.length > 0,
   });
+
+  const taskAreaIds = useMemo(() => areas.filter((a) => a.mode === 'tasks').map((a) => a.id), [areas]);
+  const protoTasksQ = useQuery({
+    queryKey: ["prototype_tasks", taskAreaIds, date],
+    queryFn: () => fetchPrototypeTasks(taskAreaIds, date),
+    enabled: taskAreaIds.length > 0,
+  });
+
   const overtime = !!overtimeQ.data;
 
   if (!isLider) {
@@ -124,6 +137,19 @@ function LiderPage() {
 
       <div className="grid gap-4">
         {areas.map((area) => {
+          if (area.mode === 'tasks') {
+            return (
+              <PrototipagemAreaCard
+                key={area.id}
+                area={area}
+                date={date}
+                userId={user!.id}
+                tasks={(protoTasksQ.data ?? []).filter((t) => t.area_id === area.id)}
+                onChanged={() => qc.invalidateQueries({ queryKey: ["prototype_tasks", taskAreaIds, date] })}
+              />
+            );
+          }
+
           const areaMachines = machines.filter((m) => m.area_id === area.id);
           if (!areaMachines.length) return null;
           const areaOptions = activeCollabs
@@ -173,6 +199,264 @@ function LiderPage() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// Prototipagem: área por tarefas hora a hora
+// ──────────────────────────────────────────────────────────
+
+const SLOT_LABELS = [
+  "07:30–08:30", "08:30–09:30", "09:30–10:30", "10:30–11:30", "11:30–12:00",
+  "13:00–14:00", "14:00–15:00", "15:00–16:00", "16:00–17:00", "17:00–17:30",
+];
+
+function PrototipagemAreaCard({
+  area,
+  date,
+  userId,
+  tasks,
+  onChanged,
+}: {
+  area: { id: string; name: string };
+  date: string;
+  userId: string;
+  tasks: PrototypeTask[];
+  onChanged: () => void;
+}) {
+  const feitas = tasks.filter((t) => t.status === 'feito').length;
+  const incompletas = tasks.filter((t) => t.status === 'incompleto').length;
+  const total = tasks.length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-semibold">{area.name}</h2>
+        <span className="text-xs text-muted-foreground">
+          {feitas}/{total} feitas{incompletas > 0 ? ` · ${incompletas} incompletas` : ""}
+        </span>
+      </div>
+      <div className="grid gap-3">
+        {SLOT_LABELS.map((label, slotIndex) => (
+          <PrototipagemSlotCard
+            key={slotIndex}
+            slotIndex={slotIndex}
+            slotLabel={label}
+            areaId={area.id}
+            date={date}
+            userId={userId}
+            tasks={tasks.filter((t) => t.hour_slot === slotIndex)}
+            onChanged={onChanged}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PrototipagemSlotCard({
+  slotIndex,
+  slotLabel,
+  areaId,
+  date,
+  userId,
+  tasks,
+  onChanged,
+}: {
+  slotIndex: number;
+  slotLabel: string;
+  areaId: string;
+  date: string;
+  userId: string;
+  tasks: PrototypeTask[];
+  onChanged: () => void;
+}) {
+  const [newDesc, setNewDesc] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const add = async () => {
+    if (!newDesc.trim()) return;
+    setAdding(true);
+    try {
+      await createPrototypeTask(areaId, date, slotIndex, newDesc, userId);
+      setNewDesc("");
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao adicionar tarefa");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const feitas = tasks.filter((t) => t.status === 'feito').length;
+
+  return (
+    <Card className={cn("overflow-hidden", tasks.length === 0 && "border-dashed opacity-70")}>
+      <CardHeader className="flex flex-row items-center justify-between bg-muted/40 py-2 px-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{slotLabel}</span>
+          {tasks.length > 0 && (
+            <Badge variant="secondary" className="text-[10px]">
+              {feitas}/{tasks.length}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2 pt-3 pb-3 px-4">
+        {tasks.map((task) => (
+          <PrototipagemTaskRow
+            key={task.id}
+            task={task}
+            userId={userId}
+            onChanged={onChanged}
+          />
+        ))}
+        <div className="flex gap-2 pt-1">
+          <Input
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+            placeholder="Adicionar tarefa..."
+            className="h-8 text-sm"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 shrink-0"
+            disabled={adding || !newDesc.trim()}
+            onClick={add}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PrototipagemTaskRow({
+  task,
+  userId,
+  onChanged,
+}: {
+  task: PrototypeTask;
+  userId: string;
+  onChanged: () => void;
+}) {
+  const [obs, setObs] = useState(task.observation ?? "");
+  const [savingObs, setSavingObs] = useState(false);
+
+  useEffect(() => setObs(task.observation ?? ""), [task.observation]);
+
+  const setStatus = async (status: 'nao_feito' | 'incompleto' | 'feito') => {
+    try {
+      await updatePrototypeTaskStatus(task.id, status, status === 'incompleto' ? obs : null, userId);
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao atualizar status");
+    }
+  };
+
+  const saveObs = async () => {
+    if (task.status !== 'incompleto') return;
+    if (obs.trim() === (task.observation ?? "").trim()) return;
+    setSavingObs(true);
+    try {
+      await updatePrototypeTaskStatus(task.id, 'incompleto', obs, userId);
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao salvar observação");
+    } finally {
+      setSavingObs(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Remover "${task.description}"?`)) return;
+    try {
+      await deletePrototypeTask(task.id);
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao remover tarefa");
+    }
+  };
+
+  const statusColor = {
+    nao_feito: "border-l-destructive",
+    incompleto: "border-l-warning",
+    feito: "border-l-success",
+  }[task.status];
+
+  return (
+    <div className={cn("rounded-lg border border-l-4 bg-card p-2 space-y-1.5", statusColor)}>
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-sm">{task.description}</span>
+        <div className="flex gap-1 shrink-0">
+          <button
+            type="button"
+            title="Não feito"
+            onClick={() => setStatus('nao_feito')}
+            className={cn(
+              "rounded p-1 transition-colors",
+              task.status === 'nao_feito'
+                ? "bg-destructive text-destructive-foreground"
+                : "text-muted-foreground hover:text-destructive",
+            )}
+          >
+            <XCircle className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            title="Incompleto"
+            onClick={() => setStatus('incompleto')}
+            className={cn(
+              "rounded p-1 transition-colors",
+              task.status === 'incompleto'
+                ? "bg-warning text-warning-foreground"
+                : "text-muted-foreground hover:text-warning",
+            )}
+          >
+            <AlertCircle className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            title="Feito"
+            onClick={() => setStatus('feito')}
+            className={cn(
+              "rounded p-1 transition-colors",
+              task.status === 'feito'
+                ? "bg-success text-success-foreground"
+                : "text-muted-foreground hover:text-success",
+            )}
+          >
+            <CheckCircle2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            title="Remover"
+            onClick={remove}
+            className="rounded p-1 text-muted-foreground transition-colors hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      {task.status === 'incompleto' && (
+        <Textarea
+          value={obs}
+          onChange={(e) => setObs(e.target.value)}
+          onBlur={saveObs}
+          placeholder="Por que ficou incompleto?"
+          rows={2}
+          className={cn("resize-none text-xs", savingObs && "opacity-60")}
+        />
+      )}
     </div>
   );
 }

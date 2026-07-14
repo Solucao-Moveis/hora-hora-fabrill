@@ -2,17 +2,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { fetchAreas, fetchMachines, fetchGoalsForDate, upsertGoal, fetchOvertime, setOvertime } from "@/lib/queries";
+import {
+  fetchAreas,
+  fetchMachines,
+  fetchGoalsForDate,
+  upsertGoal,
+  fetchOvertime,
+  setOvertime,
+  fetchPrototypeTasks,
+  createPrototypeTask,
+  updatePrototypeTaskStatus,
+  deletePrototypeTask,
+  type PrototypeTask,
+} from "@/lib/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/app/DatePicker";
 import { todayIso, formatDateBR } from "@/lib/time-slots";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Lock, Save } from "lucide-react";
+import { Lock, Save, Plus, Trash2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/pcp/metas")({
   component: MetasPage,
@@ -38,6 +52,16 @@ function MetasPage() {
   const overtimeQ = useQuery({
     queryKey: ["overtime", date],
     queryFn: () => fetchOvertime(date),
+  });
+
+  const taskAreaIds = useMemo(
+    () => (areasQ.data ?? []).filter((a) => a.mode === 'tasks').map((a) => a.id),
+    [areasQ.data],
+  );
+  const protoTasksQ = useQuery({
+    queryKey: ["prototype_tasks", taskAreaIds, date],
+    queryFn: () => fetchPrototypeTasks(taskAreaIds, date),
+    enabled: taskAreaIds.length > 0,
   });
 
   if (!isPcp && !isAdmin) return <div>Acesso restrito ao PCP.</div>;
@@ -87,6 +111,19 @@ function MetasPage() {
 
       <div className="grid gap-4">
         {(areasQ.data ?? []).map((area) => {
+          if (area.mode === 'tasks') {
+            return (
+              <PcpPrototipagemCard
+                key={area.id}
+                area={area}
+                date={date}
+                userId={user!.id}
+                tasks={(protoTasksQ.data ?? []).filter((t) => t.area_id === area.id)}
+                onChanged={() => qc.invalidateQueries({ queryKey: ["prototype_tasks", taskAreaIds, date] })}
+              />
+            );
+          }
+
           const areaMachines = (machinesQ.data ?? []).filter((m) => m.area_id === area.id);
           const areaTotal = areaMachines.reduce((s, m) => {
             const g = goalsQ.data?.find((x) => x.machine_id === m.id);
@@ -155,6 +192,185 @@ function MetasPage() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// PCP: visualização/adição de tarefas da Prototipagem
+// ──────────────────────────────────────────────────────────
+
+const PROTO_SLOT_LABELS = [
+  "07:30–08:30", "08:30–09:30", "09:30–10:30", "10:30–11:30", "11:30–12:00",
+  "13:00–14:00", "14:00–15:00", "15:00–16:00", "16:00–17:00", "17:00–17:30",
+];
+
+function PcpPrototipagemCard({
+  area,
+  date,
+  userId,
+  tasks,
+  onChanged,
+}: {
+  area: { id: string; name: string };
+  date: string;
+  userId: string;
+  tasks: PrototypeTask[];
+  onChanged: () => void;
+}) {
+  const feitas = tasks.filter((t) => t.status === 'feito').length;
+  const incompletas = tasks.filter((t) => t.status === 'incompleto').length;
+  const naoFeitas = tasks.filter((t) => t.status === 'nao_feito').length;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 bg-muted/40 py-3">
+        <CardTitle className="text-base">{area.name}</CardTitle>
+        <div className="flex gap-2">
+          <Badge variant="secondary">{tasks.length} tarefas</Badge>
+          <Badge className="bg-success text-success-foreground">{feitas} feitas</Badge>
+          {incompletas > 0 && <Badge className="bg-warning text-warning-foreground">{incompletas} incompletas</Badge>}
+          {naoFeitas > 0 && <Badge variant="destructive">{naoFeitas} não feitas</Badge>}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-4">
+        {PROTO_SLOT_LABELS.map((label, slotIndex) => {
+          const slotTasks = tasks.filter((t) => t.hour_slot === slotIndex);
+          return (
+            <PcpProtoSlot
+              key={slotIndex}
+              slotIndex={slotIndex}
+              slotLabel={label}
+              areaId={area.id}
+              date={date}
+              userId={userId}
+              tasks={slotTasks}
+              onChanged={onChanged}
+            />
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PcpProtoSlot({
+  slotIndex,
+  slotLabel,
+  areaId,
+  date,
+  userId,
+  tasks,
+  onChanged,
+}: {
+  slotIndex: number;
+  slotLabel: string;
+  areaId: string;
+  date: string;
+  userId: string;
+  tasks: PrototypeTask[];
+  onChanged: () => void;
+}) {
+  const [newDesc, setNewDesc] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const add = async () => {
+    if (!newDesc.trim()) return;
+    setAdding(true);
+    try {
+      await createPrototypeTask(areaId, date, slotIndex, newDesc, userId);
+      setNewDesc("");
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao adicionar tarefa");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const feitas = tasks.filter((t) => t.status === 'feito').length;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{slotLabel}</span>
+        {tasks.length > 0 && (
+          <Badge variant="outline" className="text-[10px]">{feitas}/{tasks.length}</Badge>
+        )}
+      </div>
+      <div className="space-y-1 pl-2">
+        {tasks.map((task) => (
+          <PcpProtoTaskRow key={task.id} task={task} userId={userId} onChanged={onChanged} />
+        ))}
+        <div className="flex gap-2 pt-0.5">
+          <Input
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+            placeholder="Adicionar tarefa..."
+            className="h-7 text-xs"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 shrink-0"
+            disabled={adding || !newDesc.trim()}
+            onClick={add}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PcpProtoTaskRow({
+  task,
+  userId,
+  onChanged,
+}: {
+  task: PrototypeTask;
+  userId: string;
+  onChanged: () => void;
+}) {
+  const statusIcon = {
+    nao_feito: <XCircle className="h-3.5 w-3.5 text-destructive" />,
+    incompleto: <AlertCircle className="h-3.5 w-3.5 text-warning" />,
+    feito: <CheckCircle2 className="h-3.5 w-3.5 text-success" />,
+  }[task.status];
+
+  const statusLabel = { nao_feito: "Não feito", incompleto: "Incompleto", feito: "Feito" }[task.status];
+
+  const remove = async () => {
+    if (!confirm(`Remover "${task.description}"?`)) return;
+    try {
+      await deletePrototypeTask(task.id);
+      onChanged();
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error(err.message ?? "Erro ao remover");
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-2 rounded border bg-card px-2 py-1">
+      <span className="mt-0.5 shrink-0" title={statusLabel}>{statusIcon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs">{task.description}</p>
+        {task.status === 'incompleto' && task.observation && (
+          <p className="text-[11px] text-muted-foreground mt-0.5">{task.observation}</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={remove}
+        className="shrink-0 text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
     </div>
   );
 }

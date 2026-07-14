@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          mode: string
           name: string
           slug: string
           sort_order: number
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          mode?: string
           name: string
           slug: string
           sort_order?: number
@@ -32,11 +34,62 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          mode?: string
           name?: string
           slug?: string
           sort_order?: number
         }
         Relationships: []
+      }
+      prototype_tasks: {
+        Row: {
+          area_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          hour_slot: number
+          id: string
+          observation: string | null
+          status: string
+          task_date: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          hour_slot: number
+          id?: string
+          observation?: string | null
+          status?: string
+          task_date: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          hour_slot?: number
+          id?: string
+          observation?: string | null
+          status?: string
+          task_date?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prototype_tasks_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collaborators: {
         Row: {
