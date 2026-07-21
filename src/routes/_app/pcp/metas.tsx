@@ -197,13 +197,8 @@ function MetasPage() {
 }
 
 // ──────────────────────────────────────────────────────────
-// PCP: visualização/adição de tarefas da Prototipagem
+// PCP: visualização/adição de tarefas da Prototipagem (tasklist do dia)
 // ──────────────────────────────────────────────────────────
-
-const PROTO_SLOT_LABELS = [
-  "07:30–08:30", "08:30–09:30", "09:30–10:30", "10:30–11:30", "11:30–12:00",
-  "13:00–14:00", "14:00–15:00", "15:00–16:00", "16:00–17:00", "17:00–17:30",
-];
 
 function PcpPrototipagemCard({
   area,
@@ -218,67 +213,18 @@ function PcpPrototipagemCard({
   tasks: PrototypeTask[];
   onChanged: () => void;
 }) {
+  const [newDesc, setNewDesc] = useState("");
+  const [adding, setAdding] = useState(false);
+
   const feitas = tasks.filter((t) => t.status === 'feito').length;
   const incompletas = tasks.filter((t) => t.status === 'incompleto').length;
   const naoFeitas = tasks.filter((t) => t.status === 'nao_feito').length;
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 bg-muted/40 py-3">
-        <CardTitle className="text-base">{area.name}</CardTitle>
-        <div className="flex gap-2">
-          <Badge variant="secondary">{tasks.length} tarefas</Badge>
-          <Badge className="bg-success text-success-foreground">{feitas} feitas</Badge>
-          {incompletas > 0 && <Badge className="bg-warning text-warning-foreground">{incompletas} incompletas</Badge>}
-          {naoFeitas > 0 && <Badge variant="destructive">{naoFeitas} não feitas</Badge>}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-4">
-        {PROTO_SLOT_LABELS.map((label, slotIndex) => {
-          const slotTasks = tasks.filter((t) => t.hour_slot === slotIndex);
-          return (
-            <PcpProtoSlot
-              key={slotIndex}
-              slotIndex={slotIndex}
-              slotLabel={label}
-              areaId={area.id}
-              date={date}
-              userId={userId}
-              tasks={slotTasks}
-              onChanged={onChanged}
-            />
-          );
-        })}
-      </CardContent>
-    </Card>
-  );
-}
-
-function PcpProtoSlot({
-  slotIndex,
-  slotLabel,
-  areaId,
-  date,
-  userId,
-  tasks,
-  onChanged,
-}: {
-  slotIndex: number;
-  slotLabel: string;
-  areaId: string;
-  date: string;
-  userId: string;
-  tasks: PrototypeTask[];
-  onChanged: () => void;
-}) {
-  const [newDesc, setNewDesc] = useState("");
-  const [adding, setAdding] = useState(false);
 
   const add = async () => {
     if (!newDesc.trim()) return;
     setAdding(true);
     try {
-      await createPrototypeTask(areaId, date, slotIndex, newDesc, userId);
+      await createPrototypeTask(area.id, date, newDesc, userId);
       setNewDesc("");
       onChanged();
     } catch (e: unknown) {
@@ -289,41 +235,41 @@ function PcpProtoSlot({
     }
   };
 
-  const feitas = tasks.filter((t) => t.status === 'feito').length;
-
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{slotLabel}</span>
-        {tasks.length > 0 && (
-          <Badge variant="outline" className="text-[10px]">{feitas}/{tasks.length}</Badge>
-        )}
-      </div>
-      <div className="space-y-1 pl-2">
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 bg-muted/40 py-3">
+        <CardTitle className="text-base">{area.name}</CardTitle>
+        <div className="flex gap-2">
+          <Badge variant="secondary">{feitas}/{tasks.length} feitas</Badge>
+          {incompletas > 0 && <Badge className="bg-warning text-warning-foreground">{incompletas} incompletas</Badge>}
+          {naoFeitas > 0 && <Badge variant="destructive">{naoFeitas} não feitas</Badge>}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-1 pt-4">
         {tasks.map((task) => (
           <PcpProtoTaskRow key={task.id} task={task} userId={userId} onChanged={onChanged} />
         ))}
-        <div className="flex gap-2 pt-0.5">
+        <div className="flex gap-2 pt-1">
           <Input
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
-            placeholder="Adicionar tarefa..."
-            className="h-7 text-xs"
+            placeholder="Adicionar tarefa do dia..."
+            className="h-8 text-sm"
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           />
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="h-7 px-2 shrink-0"
+            className="h-8 shrink-0"
             disabled={adding || !newDesc.trim()}
             onClick={add}
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 

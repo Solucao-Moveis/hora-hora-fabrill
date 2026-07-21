@@ -47,7 +47,6 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
-          hour_slot: number
           id: string
           observation: string | null
           status: string
@@ -60,7 +59,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
-          hour_slot: number
           id?: string
           observation?: string | null
           status?: string
@@ -73,7 +71,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
-          hour_slot?: number
           id?: string
           observation?: string | null
           status?: string

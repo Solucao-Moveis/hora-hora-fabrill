@@ -767,7 +767,7 @@ function ProtoTasksSummaryCard({
   tasks,
 }: {
   areas: Area[];
-  tasks: { area_id: string; hour_slot: number; description: string; status: string; observation: string | null }[];
+  tasks: { area_id: string; description: string; status: string; observation: string | null }[];
 }) {
   return (
     <Card>

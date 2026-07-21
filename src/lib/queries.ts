@@ -6,7 +6,6 @@ export type PrototypeTask = {
   id: string;
   area_id: string;
   task_date: string;
-  hour_slot: number;
   description: string;
   status: 'nao_feito' | 'incompleto' | 'feito';
   observation: string | null;
@@ -305,7 +304,6 @@ export async function fetchPrototypeTasks(areaIds: string[], date: string): Prom
     .select("*")
     .in("area_id", areaIds)
     .eq("task_date", date)
-    .order("hour_slot")
     .order("created_at");
   if (error) throw error;
   return (data ?? []) as PrototypeTask[];
@@ -314,13 +312,12 @@ export async function fetchPrototypeTasks(areaIds: string[], date: string): Prom
 export async function createPrototypeTask(
   area_id: string,
   task_date: string,
-  hour_slot: number,
   description: string,
   user_id: string,
 ): Promise<void> {
   const { error } = await supabase
     .from("prototype_tasks")
-    .insert({ area_id, task_date, hour_slot, description: description.trim(), created_by: user_id });
+    .insert({ area_id, task_date, description: description.trim(), created_by: user_id });
   if (error) throw error;
 }
 

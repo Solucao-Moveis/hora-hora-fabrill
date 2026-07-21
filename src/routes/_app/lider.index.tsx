@@ -204,13 +204,8 @@ function LiderPage() {
 }
 
 // ──────────────────────────────────────────────────────────
-// Prototipagem: área por tarefas hora a hora
+// Prototipagem: tasklist do dia
 // ──────────────────────────────────────────────────────────
-
-const SLOT_LABELS = [
-  "07:30–08:30", "08:30–09:30", "09:30–10:30", "10:30–11:30", "11:30–12:00",
-  "13:00–14:00", "14:00–15:00", "15:00–16:00", "16:00–17:00", "17:00–17:30",
-];
 
 function PrototipagemAreaCard({
   area,
@@ -225,61 +220,18 @@ function PrototipagemAreaCard({
   tasks: PrototypeTask[];
   onChanged: () => void;
 }) {
+  const [newDesc, setNewDesc] = useState("");
+  const [adding, setAdding] = useState(false);
+
   const feitas = tasks.filter((t) => t.status === 'feito').length;
   const incompletas = tasks.filter((t) => t.status === 'incompleto').length;
   const total = tasks.length;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold">{area.name}</h2>
-        <span className="text-xs text-muted-foreground">
-          {feitas}/{total} feitas{incompletas > 0 ? ` · ${incompletas} incompletas` : ""}
-        </span>
-      </div>
-      <div className="grid gap-3">
-        {SLOT_LABELS.map((label, slotIndex) => (
-          <PrototipagemSlotCard
-            key={slotIndex}
-            slotIndex={slotIndex}
-            slotLabel={label}
-            areaId={area.id}
-            date={date}
-            userId={userId}
-            tasks={tasks.filter((t) => t.hour_slot === slotIndex)}
-            onChanged={onChanged}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PrototipagemSlotCard({
-  slotIndex,
-  slotLabel,
-  areaId,
-  date,
-  userId,
-  tasks,
-  onChanged,
-}: {
-  slotIndex: number;
-  slotLabel: string;
-  areaId: string;
-  date: string;
-  userId: string;
-  tasks: PrototypeTask[];
-  onChanged: () => void;
-}) {
-  const [newDesc, setNewDesc] = useState("");
-  const [adding, setAdding] = useState(false);
 
   const add = async () => {
     if (!newDesc.trim()) return;
     setAdding(true);
     try {
-      await createPrototypeTask(areaId, date, slotIndex, newDesc, userId);
+      await createPrototypeTask(area.id, date, newDesc, userId);
       setNewDesc("");
       onChanged();
     } catch (e: unknown) {
@@ -290,50 +242,46 @@ function PrototipagemSlotCard({
     }
   };
 
-  const feitas = tasks.filter((t) => t.status === 'feito').length;
-
   return (
-    <Card className={cn("overflow-hidden", tasks.length === 0 && "border-dashed opacity-70")}>
-      <CardHeader className="flex flex-row items-center justify-between bg-muted/40 py-2 px-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">{slotLabel}</span>
-          {tasks.length > 0 && (
-            <Badge variant="secondary" className="text-[10px]">
-              {feitas}/{tasks.length}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2 pt-3 pb-3 px-4">
-        {tasks.map((task) => (
-          <PrototipagemTaskRow
-            key={task.id}
-            task={task}
-            userId={userId}
-            onChanged={onChanged}
-          />
-        ))}
-        <div className="flex gap-2 pt-1">
-          <Input
-            value={newDesc}
-            onChange={(e) => setNewDesc(e.target.value)}
-            placeholder="Adicionar tarefa..."
-            className="h-8 text-sm"
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 shrink-0"
-            disabled={adding || !newDesc.trim()}
-            onClick={add}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-semibold">{area.name}</h2>
+        <span className="text-xs text-muted-foreground">
+          {feitas}/{total} feitas{incompletas > 0 ? ` · ${incompletas} incompletas` : ""}
+        </span>
+      </div>
+      <Card className={cn("overflow-hidden", tasks.length === 0 && "border-dashed opacity-70")}>
+        <CardContent className="space-y-2 pt-4">
+          {tasks.map((task) => (
+            <PrototipagemTaskRow
+              key={task.id}
+              task={task}
+              userId={userId}
+              onChanged={onChanged}
+            />
+          ))}
+          <div className="flex gap-2 pt-1">
+            <Input
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="Adicionar tarefa do dia..."
+              className="h-8 text-sm"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 shrink-0"
+              disabled={adding || !newDesc.trim()}
+              onClick={add}
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
