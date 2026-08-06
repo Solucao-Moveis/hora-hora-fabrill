@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { todayIso } from "@/lib/time-slots";
+import { todayIso, formatDateBR } from "@/lib/time-slots";
 import { useAuth } from "@/lib/auth-context";
 import { Trophy } from "lucide-react";
 import {
@@ -34,17 +34,31 @@ export const Route = createFileRoute("/_app/pcp/relatorios")({
 
 function RelatoriosPage() {
   const { isPcp } = useAuth();
-  // Mês selecionado para os indicadores (YYYY-MM). Default = mês atual.
-  const [month, setMonth] = useState(() => todayIso().slice(0, 7));
+  // Período selecionado para os indicadores (datas livres). Default = mês atual inteiro.
+  const [dateFrom, setDateFrom] = useState(() => todayIso().slice(0, 8) + "01");
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
+  });
   const [dailySector, setDailySector] = useState<string>("");
   const monthRange = useMemo(() => {
-    const [y, m] = month.split("-").map(Number);
-    const first = new Date(y, (m ?? 1) - 1, 1);
-    const last = new Date(y, m ?? 1, 0);
+    if (!dateFrom || !dateTo || dateTo < dateFrom) {
+      return { from: dateFrom, to: dateFrom, dates: dateFrom ? [dateFrom] : [] };
+    }
+    const [fy, fm, fd] = dateFrom.split("-").map(Number);
+    const [ty, tm, td] = dateTo.split("-").map(Number);
+    const cur = new Date(fy, fm - 1, fd);
+    const end = new Date(ty, tm - 1, td);
     const fmt = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return { from: fmt(first), to: fmt(last), days: last.getDate() };
-  }, [month]);
+    const dates: string[] = [];
+    while (cur <= end) {
+      dates.push(fmt(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return { from: dateFrom, to: dateTo, dates };
+  }, [dateFrom, dateTo]);
 
   const areasQ = useQuery({ queryKey: ["areas"], queryFn: fetchAreas });
   const machinesQ = useQuery({ queryKey: ["machines", "all"], queryFn: () => fetchMachines() });
@@ -88,8 +102,7 @@ function RelatoriosPage() {
       allMachines.filter((m) => m.area_id === dailySector).map((m) => m.id),
     );
     const rows: { day: string; Meta: number; Realizado: number; pct: number | null }[] = [];
-    for (let d = 1; d <= monthRange.days; d++) {
-      const iso = `${month}-${String(d).padStart(2, "0")}`;
+    for (const iso of monthRange.dates) {
       const meta = goals
         .filter((g) => g.goal_date === iso && machineIdsOfArea.has(g.machine_id))
         .reduce((s, g) => s + g.goal, 0);
@@ -97,10 +110,10 @@ function RelatoriosPage() {
         .filter((e) => e.entry_date === iso && machineIdsOfArea.has(e.machine_id))
         .reduce((s, e) => s + e.quantity, 0);
       const pct = meta > 0 ? Math.round((realizado / meta) * 100) : null;
-      rows.push({ day: String(d), Meta: meta, Realizado: realizado, pct });
+      rows.push({ day: formatDateBR(iso).slice(0, 5), Meta: meta, Realizado: realizado, pct });
     }
     return rows;
-  }, [dailySector, monthGoalsQ.data, monthEntriesQ.data, allMachines, monthRange, month]);
+  }, [dailySector, monthGoalsQ.data, monthEntriesQ.data, allMachines, monthRange]);
 
   // Indicador 2: Meta total x realizado por setor (mês)
   const totalBySector = useMemo(() => {
@@ -219,15 +232,24 @@ function RelatoriosPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-base">Indicadores do mês</CardTitle>
+          <CardTitle className="text-base">Indicadores do período</CardTitle>
           <div className="flex items-end gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Mês</Label>
+              <Label className="text-xs">De</Label>
               <Input
-                type="month"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="h-9 w-[160px]"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-9 w-[150px]"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Até</Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-9 w-[150px]"
               />
             </div>
           </div>
@@ -283,7 +305,7 @@ function RelatoriosPage() {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Meta total x Realizado por setor</h3>
             <p className="text-xs text-muted-foreground">
-              Comparativo do total de meta versus produção realizada no mês.
+              Comparativo do total de meta versus produção realizada no período.
             </p>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -331,7 +353,7 @@ function RelatoriosPage() {
 
           {/* Indicador 3 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Funcionário do mês por setor</h3>
+            <h3 className="text-sm font-semibold">Funcionário do período por setor</h3>
             <p className="text-xs text-muted-foreground">
               Colaborador com maior % de atingimento da meta no setor, desde que tenha
               atingido pelo menos 95% (divisão proporcional quando há mais de um colaborador no mesmo posto).
