@@ -32,6 +32,8 @@ export const Route = createFileRoute("/_app/pcp/relatorios")({
   component: RelatoriosPage,
 });
 
+const ALL_SECTORS = "__all__";
+
 function RelatoriosPage() {
   const { isPcp } = useAuth();
   // Período selecionado para os indicadores (datas livres). Default = mês atual inteiro.
@@ -99,7 +101,9 @@ function RelatoriosPage() {
     const goals = monthGoalsQ.data ?? [];
     const entries = monthEntriesQ.data ?? [];
     const machineIdsOfArea = new Set(
-      allMachines.filter((m) => m.area_id === dailySector).map((m) => m.id),
+      dailySector === ALL_SECTORS
+        ? allMachines.map((m) => m.id)
+        : allMachines.filter((m) => m.area_id === dailySector).map((m) => m.id),
     );
     const rows: { day: string; Meta: number; Realizado: number; pct: number | null }[] = [];
     for (const iso of monthRange.dates) {
@@ -271,6 +275,7 @@ function RelatoriosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={ALL_SECTORS}>Todos</SelectItem>
                     {areas.map((a) => (
                       <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
