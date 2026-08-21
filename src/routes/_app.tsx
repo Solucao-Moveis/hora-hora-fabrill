@@ -56,17 +56,17 @@ function AppLayout() {
 
   const navItems: NavItem[] = fullAccess
     ? [
-        { to: "/pcp/metas", label: "Metas", icon: Target },
-        { to: "/pcp/dashboard", label: "Dashboard", icon: BarChart3 },
-        { to: "/pcp/relatorios", label: "Indicadores", icon: ClipboardList },
-        { to: "/pcp/desvios", label: "Desvios", icon: AlertTriangle },
+        { to: "/pcp/metas", label: "Metas", icon: Target, primary: true },
+        { to: "/pcp/dashboard", label: "Dashboard", icon: BarChart3, primary: true },
+        { to: "/pcp/relatorios", label: "Indicadores", icon: ClipboardList, primary: true },
+        { to: "/pcp/desvios", label: "Desvios", icon: AlertTriangle, primary: true },
         { to: "/pcp/usuarios", label: "Usuários", icon: Users },
       ]
     : isQualidade
-      ? [{ to: "/pcp/desvios", label: "Desvios de Produção", icon: AlertTriangle }]
+      ? [{ to: "/pcp/desvios", label: "Desvios de Produção", icon: AlertTriangle, primary: true }]
       : [
-          { to: "/lider", label: "Apontamento", icon: ClipboardList },
-          { to: "/lider/dashboard", label: "Dashboard", icon: BarChart3 },
+          { to: "/lider", label: "Apontamento", icon: ClipboardList, primary: true },
+          { to: "/lider/dashboard", label: "Dashboard", icon: BarChart3, primary: true },
         ];
 
   const roleLabel = isAdmin
