@@ -283,26 +283,28 @@ function RelatoriosPage() {
                 </Select>
               </div>
             </div>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailySectorSeries}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="day" fontSize={11} />
-                    <YAxis fontSize={11} tickFormatter={(v) => `${v}%`} />
-                    <Tooltip formatter={(value: number) => [`${value}%`, "% Meta"]} />
-                    <Bar dataKey="pct" name="% Meta" radius={[4, 4, 0, 0]}>
-                      <LabelList dataKey="pct" position="top" formatter={(v: number | null) => (v != null ? `${v}%` : "")} fontSize={10} />
-                      {dailySectorSeries.map((entry, index) => {
-                        const pct = entry.pct ?? 0;
-                        let fill = "hsl(0 72% 51%)"; // vermelho
-                        if (pct >= 130) fill = "hsl(199 89% 48%)"; // azul
-                        else if (pct >= 100) fill = "hsl(142 71% 45%)"; // verde
-                        else if (pct >= 90) fill = "hsl(38 92% 50%)"; // amarelo
-                        return <Cell key={`cell-${index}`} fill={fill} />;
-                      })}
-                    </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="h-[300px] w-full overflow-x-auto">
+              <div className="h-full" style={{ width: "100%", minWidth: Math.max(dailySectorSeries.length * 34, 320) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dailySectorSeries}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="day" fontSize={11} interval={0} />
+                      <YAxis fontSize={11} tickFormatter={(v) => `${v}%`} />
+                      <Tooltip formatter={(value: number) => [`${value}%`, "% Meta"]} />
+                      <Bar dataKey="pct" name="% Meta" radius={[4, 4, 0, 0]}>
+                        <LabelList dataKey="pct" position="top" formatter={(v: number | null) => (v != null ? `${v}%` : "")} fontSize={10} />
+                        {dailySectorSeries.map((entry, index) => {
+                          const pct = entry.pct ?? 0;
+                          let fill = "hsl(0 72% 51%)"; // vermelho
+                          if (pct >= 130) fill = "hsl(199 89% 48%)"; // azul
+                          else if (pct >= 100) fill = "hsl(142 71% 45%)"; // verde
+                          else if (pct >= 90) fill = "hsl(38 92% 50%)"; // amarelo
+                          return <Cell key={`cell-${index}`} fill={fill} />;
+                        })}
+                      </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
@@ -312,8 +314,9 @@ function RelatoriosPage() {
             <p className="text-xs text-muted-foreground">
               Comparativo do total de meta versus produção realizada no período.
             </p>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[300px] w-full overflow-x-auto">
+              <div className="h-full" style={{ width: "100%", minWidth: Math.max(totalBySector.length * 90, 320) }}>
+                <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={totalBySector}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -352,7 +355,8 @@ function RelatoriosPage() {
                     />
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 

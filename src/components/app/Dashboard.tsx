@@ -705,7 +705,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
         <Card>
           <CardHeader><CardTitle className="text-base">Produção por operador</CardTitle></CardHeader>
           <CardContent>
-            <ChartWrap empty={opData.length === 0}>
+            <ChartWrap empty={opData.length === 0} minWidth={Math.max(opData.length * 70, 320)}>
               <BarChart data={opData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
@@ -1017,11 +1017,22 @@ function JustificationRow({
   );
 }
 
-function ChartWrap({ children, empty }: { children: React.ReactElement; empty: boolean }) {
+function ChartWrap({ children, empty, minWidth }: { children: React.ReactElement; empty: boolean; minWidth?: number }) {
   if (empty) {
     return (
       <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
         Sem dados para o período selecionado
+      </div>
+    );
+  }
+  if (minWidth) {
+    return (
+      <div className="h-[280px] overflow-x-auto">
+        <div className="h-full" style={{ width: "100%", minWidth }}>
+          <ResponsiveContainer width="100%" height="100%">
+            {children}
+          </ResponsiveContainer>
+        </div>
       </div>
     );
   }
