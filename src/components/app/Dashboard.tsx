@@ -38,6 +38,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   BarChart,
   Bar,
@@ -433,6 +434,7 @@ async function exportReportPdf({
 }
 
 export function Dashboard({ restrictAreaIds }: Props) {
+  const isMobile = useIsMobile();
   const [date, setDate] = useState(todayIso());
   const [areaFilter, setAreaFilter] = useState<string>("all");
   const [machineFilter, setMachineFilter] = useState<string>("all");
@@ -649,7 +651,7 @@ export function Dashboard({ restrictAreaIds }: Props) {
               <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={isMobile ? 80 : 140} tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="Meta" fill="#94a3b8" radius={3} />

@@ -66,16 +66,16 @@ function ViewerPage() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-card/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Factory className="h-5 w-5" />
           </div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold">Produção Hora a Hora</div>
-            <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-              <Eye className="h-3 w-3" /> Visualização — {data.viewerName}
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="truncate text-sm font-semibold">Produção Hora a Hora</div>
+            <div className="inline-flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+              <Eye className="h-3 w-3 shrink-0" /> <span className="truncate">Visualização — {data.viewerName}</span>
             </div>
           </div>
-          <Badge variant="outline" className="ml-auto">Somente leitura</Badge>
+          <Badge variant="outline" className="ml-auto shrink-0">Somente leitura</Badge>
         </div>
       </header>
 
