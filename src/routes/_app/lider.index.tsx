@@ -11,6 +11,7 @@ import {
   fetchOvertime,
   setOperatorsForDate,
   upsertEntry,
+  deleteEntry,
   upsertJustification,
   fetchCollaborators,
   createCollaborator,
@@ -32,7 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/app/DatePicker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus, UserMinus, UserCheck, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Trash2, Plus, UserMinus, UserCheck, CheckCircle2, XCircle, AlertCircle, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -716,6 +717,15 @@ function MachineCard({
                     toast.error(er.message ?? "Erro ao salvar lançamento");
                   }
                 }}
+                onDelete={async () => {
+                  try {
+                    await deleteEntry(machine.id, date, slot.index);
+                    onChanged();
+                  } catch (err: unknown) {
+                    const er = err as { message?: string };
+                    toast.error(er.message ?? "Erro ao limpar lançamento");
+                  }
+                }}
               />
             );
           })}
@@ -751,22 +761,42 @@ function SlotInput({
   quantity,
   observation,
   onSave,
+  onDelete,
 }: {
   slot: string;
   quantity: number | null;
   observation: string;
   onSave: (q: number, obs: string) => Promise<void>;
+  onDelete: () => Promise<void>;
 }) {
   const [q, setQ] = useState<string>(quantity != null ? String(quantity) : "");
   const [obs, setObs] = useState<string>(observation);
+  const [limpando, setLimpando] = useState(false);
   useEffect(() => setQ(quantity != null ? String(quantity) : ""), [quantity]);
   useEffect(() => setObs(observation), [observation]);
 
   const save = async () => {
+    if (q === "") {
+      // Campo apagado manualmente: se já existia um lançamento, remove de
+      // vez (volta pro "—") em vez de deixar o 0/valor antigo grudado.
+      if (quantity != null) await onDelete();
+      return;
+    }
     const num = Number(q);
-    if (q === "" || Number.isNaN(num) || num < 0) return;
+    if (Number.isNaN(num) || num < 0) return;
     if (num === (quantity ?? -1) && obs === observation) return;
     await onSave(num, obs);
+  };
+
+  const limpar = async () => {
+    setLimpando(true);
+    try {
+      await onDelete();
+      setQ("");
+      setObs("");
+    } finally {
+      setLimpando(false);
+    }
   };
 
   const isEmpty = quantity == null;
@@ -777,7 +807,20 @@ function SlotInput({
         isEmpty ? "border-dashed bg-muted/30" : "bg-card",
       )}
     >
-      <div className="text-[11px] font-semibold text-muted-foreground">{slot}</div>
+      <div className="flex items-center justify-between gap-1">
+        <div className="text-[11px] font-semibold text-muted-foreground">{slot}</div>
+        {!isEmpty && (
+          <button
+            type="button"
+            title="Limpar apontamento (volta pro —)"
+            onClick={limpar}
+            disabled={limpando}
+            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
       <Input
         type="number"
         min={0}
@@ -785,7 +828,7 @@ function SlotInput({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onBlur={save}
-        placeholder="0"
+        placeholder="—"
         className="h-12 text-center text-lg font-bold"
       />
       <Input

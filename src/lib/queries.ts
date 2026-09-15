@@ -230,6 +230,17 @@ export async function upsertEntry(
   if (error) throw error;
 }
 
+/** Apaga um lançamento (volta o slot pro estado "sem apontamento" — mostra "—" de novo). */
+export async function deleteEntry(machine_id: string, entry_date: string, hour_slot: number) {
+  const { error } = await supabase
+    .from("production_entries")
+    .delete()
+    .eq("machine_id", machine_id)
+    .eq("entry_date", entry_date)
+    .eq("hour_slot", hour_slot);
+  if (error) throw error;
+}
+
 export type OvertimeDay = { id: string; day: string; enabled: boolean };
 
 export async function fetchOvertime(date: string): Promise<boolean> {
