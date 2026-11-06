@@ -486,11 +486,11 @@ function TvBoard({
               const rPaceUp = r.realized >= Math.round(r.expectedNow);
               return (
                 <Fragment key={r.machine.id}>
-                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[6cqh]")}>
-                    <div className="line-clamp-2 break-words text-[min(30cqh,16cqw)] font-extrabold leading-[1.05]">
+                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[0.8vw]")}>
+                    <div className="line-clamp-2 break-words text-[min(36cqh,17cqw)] font-extrabold leading-[1.05]">
                       {shortMachineName(r.machine.name, data.areaName)}
                     </div>
-                    <div className="truncate text-[min(17cqh,9cqw)] leading-tight text-muted-foreground">
+                    <div className="truncate text-[min(20cqh,10cqw)] leading-tight text-muted-foreground">
                       {r.operator || "sem operador"}
                     </div>
                   </div>
@@ -508,7 +508,7 @@ function TvBoard({
                     const tone: Tone = qty == null || r.baseGoal === 0 || !inGoal ? "neutral" : toneFor(qty / shownMeta);
                     const needed = r.neededBySlot.get(s.index);
                     const metaLine = r.baseGoal > 0 && inGoal && (
-                      <span className="text-[min(16cqh,14cqw)] font-semibold opacity-80">meta {Math.round(expected)}</span>
+                      <span className="mt-[3cqh] text-[min(19cqh,15cqw)] font-semibold opacity-80">meta {Math.round(expected)}</span>
                     );
                     return (
                       <Fragment key={key}>
@@ -517,20 +517,20 @@ function TvBoard({
                           <div
                             className={cn(
                               CELL,
-                              "relative flex flex-col items-center justify-center gap-[3cqh] rounded-xl leading-none shadow-sm transition-colors duration-700",
+                              "relative flex flex-col items-center justify-center rounded-xl leading-none shadow-sm transition-colors duration-700",
                               TONE_CELL[tone],
                               isNow && "ring-4 ring-primary ring-offset-2 ring-offset-card",
                               isFresh && "tv-glow",
                             )}
                           >
-                            <span className="text-[min(46cqh,34cqw)] font-black tabular-nums">{qty}</span>
+                            <span className="text-[min(54cqh,36cqw)] font-black tabular-nums">{qty}</span>
                             {metaLine}
                           </div>
                         ) : (
                           <div
                             className={cn(
                               CELL,
-                              "flex flex-col items-center justify-center gap-[2cqh] rounded-xl border-2 border-dashed leading-none",
+                              "flex flex-col items-center justify-center rounded-xl border-2 border-dashed leading-none",
                               isNow
                                 ? "border-primary bg-accent text-accent-foreground"
                                 : past && inGoal && r.baseGoal > 0
@@ -540,10 +540,10 @@ function TvBoard({
                           >
                             {needed != null ? (
                               <>
-                                <span className="text-[min(13cqh,11cqw)] font-semibold uppercase tracking-wide opacity-80">precisa</span>
+                                <span className="mb-[1cqh] text-[min(14cqh,11cqw)] font-semibold uppercase tracking-wide opacity-80">precisa</span>
                                 <span
                                   className={cn(
-                                    "text-[min(38cqh,30cqw)] font-black tabular-nums",
+                                    "text-[min(42cqh,30cqw)] font-black tabular-nums",
                                     needed > shownMeta ? "text-destructive" : "text-success",
                                   )}
                                 >
@@ -568,12 +568,12 @@ function TvBoard({
                     );
                   })}
 
-                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center gap-[4cqh] rounded-xl bg-muted/60 px-[6cqh]")}>
+                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[0.8vw]")}>
                     <div className="flex items-center justify-between gap-1 leading-none">
-                      <span className={cn("text-[min(36cqh,17cqw)] font-black tabular-nums", TONE_TEXT[rTone])}>
+                      <span className={cn("text-[min(42cqh,18cqw)] font-black tabular-nums", TONE_TEXT[rTone])}>
                         {r.dayGoal > 0 ? `${rPct}%` : "–"}
                       </span>
-                      <span className="flex items-center gap-1 text-[min(15cqh,8cqw)] font-semibold tabular-nums text-muted-foreground">
+                      <span className="flex items-center gap-1 text-[min(19cqh,9cqw)] font-semibold tabular-nums text-muted-foreground">
                         {r.realized}/{r.dayGoal || "–"}
                         {r.dayGoal > 0 && r.expectedNow > 0 && (
                           rPaceUp ? (
@@ -584,14 +584,14 @@ function TvBoard({
                         )}
                       </span>
                     </div>
-                    <div className="h-[7cqh] min-h-1 overflow-hidden rounded-full bg-background">
+                    <div className="my-[6cqh] h-[7cqh] min-h-1 overflow-hidden rounded-full bg-background">
                       <div
                         className={cn("h-full rounded-full transition-[width] duration-1000", TONE_BAR[rTone])}
                         style={{ width: `${Math.min(100, rPct)}%` }}
                       />
                     </div>
                     {r.dayGoal > 0 && r.missing > 0 && r.remainingCount > 0 && (
-                      <div className="truncate text-[min(17cqh,9cqw)] font-bold leading-none tabular-nums text-primary">
+                      <div className="truncate text-[min(20cqh,10cqw)] font-bold leading-none tabular-nums text-primary">
                         precisa {Math.ceil(r.missing / r.remainingCount)}/h
                       </div>
                     )}
