@@ -23,6 +23,10 @@ export const Route = createFileRoute("/tv/$token")({
 
 declare const __BUILD_ID__: string;
 
+// Cada célula vira um "container": a letra acompanha a altura da célula (cqh),
+// então cabe tudo seja o setor com 4 ou com 14 máquinas.
+const CELL = "[container-type:size] overflow-hidden";
+
 const REFRESH_MS = 5000;
 const FRESH_MS = 6000;
 
@@ -482,11 +486,11 @@ function TvBoard({
               const rPaceUp = r.realized >= Math.round(r.expectedNow);
               return (
                 <Fragment key={r.machine.id}>
-                  <div className="flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[1vw]">
-                    <div className="line-clamp-2 break-words text-[clamp(0.85rem,2.4vh,1.9rem)] font-extrabold leading-tight">
+                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[6cqh]")}>
+                    <div className="line-clamp-2 break-words text-[min(30cqh,16cqw)] font-extrabold leading-[1.05]">
                       {shortMachineName(r.machine.name, data.areaName)}
                     </div>
-                    <div className="truncate text-[clamp(0.6rem,1.3vh,1rem)] text-muted-foreground">
+                    <div className="truncate text-[min(17cqh,9cqw)] leading-tight text-muted-foreground">
                       {r.operator || "sem operador"}
                     </div>
                   </div>
@@ -502,29 +506,31 @@ function TvBoard({
                     const key = `${r.machine.id}:${s.index}`;
                     const isFresh = freshKeys.has(key);
                     const tone: Tone = qty == null || r.baseGoal === 0 || !inGoal ? "neutral" : toneFor(qty / shownMeta);
+                    const needed = r.neededBySlot.get(s.index);
+                    const metaLine = r.baseGoal > 0 && inGoal && (
+                      <span className="text-[min(16cqh,14cqw)] font-semibold opacity-80">meta {Math.round(expected)}</span>
+                    );
                     return (
                       <Fragment key={key}>
                         {i === lunchAt && <div className="rounded-lg bg-muted/40" />}
                         {qty != null ? (
                           <div
                             className={cn(
-                              "relative flex min-h-0 flex-col items-center justify-center rounded-xl leading-none shadow-sm transition-colors duration-700",
+                              CELL,
+                              "relative flex flex-col items-center justify-center gap-[3cqh] rounded-xl leading-none shadow-sm transition-colors duration-700",
                               TONE_CELL[tone],
                               isNow && "ring-4 ring-primary ring-offset-2 ring-offset-card",
                               isFresh && "tv-glow",
                             )}
                           >
-                            <span className="text-[clamp(1rem,3vh,2.6rem)] font-black tabular-nums">{qty}</span>
-                            {r.baseGoal > 0 && inGoal && (
-                              <span className="mt-[0.3vh] text-[clamp(0.55rem,1.1vh,0.85rem)] font-semibold opacity-80">
-                                meta {Math.round(expected)}
-                              </span>
-                            )}
+                            <span className="text-[min(46cqh,34cqw)] font-black tabular-nums">{qty}</span>
+                            {metaLine}
                           </div>
                         ) : (
                           <div
                             className={cn(
-                              "flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed leading-none",
+                              CELL,
+                              "flex flex-col items-center justify-center gap-[2cqh] rounded-xl border-2 border-dashed leading-none",
                               isNow
                                 ? "border-primary bg-accent text-accent-foreground"
                                 : past && inGoal && r.baseGoal > 0
@@ -532,22 +538,20 @@ function TvBoard({
                                   : "border-border bg-muted/30 text-muted-foreground/60",
                             )}
                           >
-                            {r.neededBySlot.has(s.index) ? (
+                            {needed != null ? (
                               <>
-                                <span className="text-[clamp(0.5rem,1vh,0.8rem)] font-semibold uppercase tracking-wide opacity-80">
-                                  precisa
-                                </span>
+                                <span className="text-[min(13cqh,11cqw)] font-semibold uppercase tracking-wide opacity-80">precisa</span>
                                 <span
                                   className={cn(
-                                    "text-[clamp(1rem,2.8vh,2.4rem)] font-black tabular-nums",
-                                    r.neededBySlot.get(s.index)! > shownMeta ? "text-destructive" : "text-success",
+                                    "text-[min(38cqh,30cqw)] font-black tabular-nums",
+                                    needed > shownMeta ? "text-destructive" : "text-success",
                                   )}
                                 >
-                                  {r.neededBySlot.get(s.index)}
+                                  {needed}
                                 </span>
                               </>
                             ) : (
-                              <span className="text-[clamp(0.8rem,2vh,1.6rem)] font-bold">
+                              <span className="text-[min(32cqh,26cqw)] font-bold">
                                 {r.dayGoal > 0 && r.missing === 0 && !past
                                   ? "✓"
                                   : isNow
@@ -557,41 +561,37 @@ function TvBoard({
                                       : "–"}
                               </span>
                             )}
-                            {r.baseGoal > 0 && inGoal && (
-                              <span className="mt-[0.3vh] text-[clamp(0.55rem,1.1vh,0.85rem)] font-semibold">
-                                meta {Math.round(expected)}
-                              </span>
-                            )}
+                            {metaLine}
                           </div>
                         )}
                       </Fragment>
                     );
                   })}
 
-                  <div className="flex min-w-0 flex-col justify-center gap-[0.5vh] rounded-xl bg-muted/60 px-[0.9vw]">
-                    <div className="flex items-baseline justify-between gap-1">
-                      <span className={cn("text-[clamp(1rem,2.8vh,2.4rem)] font-black leading-none tabular-nums", TONE_TEXT[rTone])}>
+                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center gap-[4cqh] rounded-xl bg-muted/60 px-[6cqh]")}>
+                    <div className="flex items-center justify-between gap-1 leading-none">
+                      <span className={cn("text-[min(36cqh,17cqw)] font-black tabular-nums", TONE_TEXT[rTone])}>
                         {r.dayGoal > 0 ? `${rPct}%` : "–"}
                       </span>
-                      {r.dayGoal > 0 && r.expectedNow > 0 && (
-                        rPaceUp ? (
-                          <TrendingUp className="h-[2.2vh] w-[2.2vh] text-success" />
-                        ) : (
-                          <TrendingDown className="h-[2.2vh] w-[2.2vh] text-destructive" />
-                        )
-                      )}
+                      <span className="flex items-center gap-1 text-[min(15cqh,8cqw)] font-semibold tabular-nums text-muted-foreground">
+                        {r.realized}/{r.dayGoal || "–"}
+                        {r.dayGoal > 0 && r.expectedNow > 0 && (
+                          rPaceUp ? (
+                            <TrendingUp className="h-[18cqh] w-[18cqh] text-success" />
+                          ) : (
+                            <TrendingDown className="h-[18cqh] w-[18cqh] text-destructive" />
+                          )
+                        )}
+                      </span>
                     </div>
-                    <div className="h-[0.8vh] overflow-hidden rounded-full bg-background">
+                    <div className="h-[7cqh] min-h-1 overflow-hidden rounded-full bg-background">
                       <div
                         className={cn("h-full rounded-full transition-[width] duration-1000", TONE_BAR[rTone])}
                         style={{ width: `${Math.min(100, rPct)}%` }}
                       />
                     </div>
-                    <div className="text-[clamp(0.55rem,1.15vh,0.9rem)] font-semibold tabular-nums text-muted-foreground">
-                      {r.realized} / {r.dayGoal || "–"}
-                    </div>
                     {r.dayGoal > 0 && r.missing > 0 && r.remainingCount > 0 && (
-                      <div className="text-[clamp(0.55rem,1.2vh,0.95rem)] font-bold tabular-nums text-primary">
+                      <div className="truncate text-[min(17cqh,9cqw)] font-bold leading-none tabular-nums text-primary">
                         precisa {Math.ceil(r.missing / r.remainingCount)}/h
                       </div>
                     )}
