@@ -13,8 +13,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ViewTokenRouteImport } from './routes/view.$token'
+import { Route as TvTokenRouteImport } from './routes/tv.$token'
 import { Route as AppLiderIndexRouteImport } from './routes/_app/lider.index'
 import { Route as AppPcpUsuariosRouteImport } from './routes/_app/pcp/usuarios'
+import { Route as AppPcpTvRouteImport } from './routes/_app/pcp/tv'
 import { Route as AppPcpRelatoriosRouteImport } from './routes/_app/pcp/relatorios'
 import { Route as AppPcpMetasRouteImport } from './routes/_app/pcp/metas'
 import { Route as AppPcpDesviosRouteImport } from './routes/_app/pcp/desvios'
@@ -40,6 +42,11 @@ const ViewTokenRoute = ViewTokenRouteImport.update({
   path: '/view/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TvTokenRoute = TvTokenRouteImport.update({
+  id: '/tv/$token',
+  path: '/tv/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppLiderIndexRoute = AppLiderIndexRouteImport.update({
   id: '/lider/',
   path: '/lider/',
@@ -48,6 +55,11 @@ const AppLiderIndexRoute = AppLiderIndexRouteImport.update({
 const AppPcpUsuariosRoute = AppPcpUsuariosRouteImport.update({
   id: '/pcp/usuarios',
   path: '/pcp/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPcpTvRoute = AppPcpTvRouteImport.update({
+  id: '/pcp/tv',
+  path: '/pcp/tv',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPcpRelatoriosRoute = AppPcpRelatoriosRouteImport.update({
@@ -79,24 +91,28 @@ const AppLiderDashboardRoute = AppLiderDashboardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/tv/$token': typeof TvTokenRoute
   '/view/$token': typeof ViewTokenRoute
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/desvios': typeof AppPcpDesviosRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
+  '/pcp/tv': typeof AppPcpTvRoute
   '/pcp/usuarios': typeof AppPcpUsuariosRoute
   '/lider/': typeof AppLiderIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/tv/$token': typeof TvTokenRoute
   '/view/$token': typeof ViewTokenRoute
   '/lider/dashboard': typeof AppLiderDashboardRoute
   '/pcp/dashboard': typeof AppPcpDashboardRoute
   '/pcp/desvios': typeof AppPcpDesviosRoute
   '/pcp/metas': typeof AppPcpMetasRoute
   '/pcp/relatorios': typeof AppPcpRelatoriosRoute
+  '/pcp/tv': typeof AppPcpTvRoute
   '/pcp/usuarios': typeof AppPcpUsuariosRoute
   '/lider': typeof AppLiderIndexRoute
 }
@@ -105,12 +121,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/tv/$token': typeof TvTokenRoute
   '/view/$token': typeof ViewTokenRoute
   '/_app/lider/dashboard': typeof AppLiderDashboardRoute
   '/_app/pcp/dashboard': typeof AppPcpDashboardRoute
   '/_app/pcp/desvios': typeof AppPcpDesviosRoute
   '/_app/pcp/metas': typeof AppPcpMetasRoute
   '/_app/pcp/relatorios': typeof AppPcpRelatoriosRoute
+  '/_app/pcp/tv': typeof AppPcpTvRoute
   '/_app/pcp/usuarios': typeof AppPcpUsuariosRoute
   '/_app/lider/': typeof AppLiderIndexRoute
 }
@@ -119,24 +137,28 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/tv/$token'
     | '/view/$token'
     | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/desvios'
     | '/pcp/metas'
     | '/pcp/relatorios'
+    | '/pcp/tv'
     | '/pcp/usuarios'
     | '/lider/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/tv/$token'
     | '/view/$token'
     | '/lider/dashboard'
     | '/pcp/dashboard'
     | '/pcp/desvios'
     | '/pcp/metas'
     | '/pcp/relatorios'
+    | '/pcp/tv'
     | '/pcp/usuarios'
     | '/lider'
   id:
@@ -144,12 +166,14 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/tv/$token'
     | '/view/$token'
     | '/_app/lider/dashboard'
     | '/_app/pcp/dashboard'
     | '/_app/pcp/desvios'
     | '/_app/pcp/metas'
     | '/_app/pcp/relatorios'
+    | '/_app/pcp/tv'
     | '/_app/pcp/usuarios'
     | '/_app/lider/'
   fileRoutesById: FileRoutesById
@@ -158,6 +182,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  TvTokenRoute: typeof TvTokenRoute
   ViewTokenRoute: typeof ViewTokenRoute
 }
 
@@ -191,6 +216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ViewTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tv/$token': {
+      id: '/tv/$token'
+      path: '/tv/$token'
+      fullPath: '/tv/$token'
+      preLoaderRoute: typeof TvTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/lider/': {
       id: '/_app/lider/'
       path: '/lider'
@@ -203,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/pcp/usuarios'
       fullPath: '/pcp/usuarios'
       preLoaderRoute: typeof AppPcpUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pcp/tv': {
+      id: '/_app/pcp/tv'
+      path: '/pcp/tv'
+      fullPath: '/pcp/tv'
+      preLoaderRoute: typeof AppPcpTvRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pcp/relatorios': {
@@ -249,6 +288,7 @@ interface AppRouteChildren {
   AppPcpDesviosRoute: typeof AppPcpDesviosRoute
   AppPcpMetasRoute: typeof AppPcpMetasRoute
   AppPcpRelatoriosRoute: typeof AppPcpRelatoriosRoute
+  AppPcpTvRoute: typeof AppPcpTvRoute
   AppPcpUsuariosRoute: typeof AppPcpUsuariosRoute
   AppLiderIndexRoute: typeof AppLiderIndexRoute
 }
@@ -259,6 +299,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPcpDesviosRoute: AppPcpDesviosRoute,
   AppPcpMetasRoute: AppPcpMetasRoute,
   AppPcpRelatoriosRoute: AppPcpRelatoriosRoute,
+  AppPcpTvRoute: AppPcpTvRoute,
   AppPcpUsuariosRoute: AppPcpUsuariosRoute,
   AppLiderIndexRoute: AppLiderIndexRoute,
 }
@@ -269,6 +310,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  TvTokenRoute: TvTokenRoute,
   ViewTokenRoute: ViewTokenRoute,
 }
 export const routeTree = rootRouteImport

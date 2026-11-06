@@ -479,6 +479,44 @@ export type Database = {
         }
         Relationships: []
       }
+      tv_screens: {
+        Row: {
+          active: boolean
+          area_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          token: string
+        }
+        Insert: {
+          active?: boolean
+          area_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          token: string
+        }
+        Update: {
+          active?: boolean
+          area_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_screens_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -170,3 +170,13 @@
     font-family: var(--font-sans);
   }
 }
+
+/* TV (/tv/$token): brilho laranja quando chega um lançamento novo */
+@keyframes tv-glow {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 70%, transparent); }
+  60% { box-shadow: 0 0 0 0.9vh color-mix(in oklch, var(--primary) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.tv-glow {
+  animation: tv-glow 1.4s ease-out 3;
+}

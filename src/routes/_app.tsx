@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/rea
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Target, ClipboardList, BarChart3, Users, AlertTriangle, Home } from "lucide-react";
+import { Target, ClipboardList, BarChart3, Users, AlertTriangle, Home, Tv } from "lucide-react";
 import { AppShell, type NavItem } from "@/components/AppShell";
 import logo from "@/assets/logo-solucao-moveis.png";
 
@@ -60,6 +60,7 @@ function AppLayout() {
         { to: "/pcp/dashboard", label: "Dashboard", icon: BarChart3, primary: true },
         { to: "/pcp/relatorios", label: "Indicadores", icon: ClipboardList, primary: true },
         { to: "/pcp/desvios", label: "Desvios", icon: AlertTriangle, primary: true },
+        { to: "/pcp/tv", label: "TV", icon: Tv },
         { to: "/pcp/usuarios", label: "Usuários", icon: Users },
       ]
     : isQualidade
