@@ -257,7 +257,22 @@ function TvBoard({
         const dayGoal = effectiveDayGoal(baseGoal, overtime, date);
         const mine = entries.filter((e) => e.machine_id === m.id);
         const realized = mine.reduce((s, e) => s + e.quantity, 0);
+        const launched = new Set(mine.map((e) => e.hour_slot));
+        // Projeção: o que falta da meta do dia, repartido entre as horas que ainda
+        // dá pra produzir (atual + futuras, sem lançamento), no peso da meta hora a hora.
+        const remainingSlots = goalSlots.filter((s) => !launched.has(s.index) && minutesOf(s.end) > nowMin);
+        const missing = Math.max(0, dayGoal - realized);
+        const weightSum = remainingSlots.reduce((s, slot) => s + expectedForSlot(baseGoal, slot.index, date), 0);
+        const neededBySlot = new Map<number, number>();
+        if (missing > 0 && weightSum > 0) {
+          remainingSlots.forEach((slot) =>
+            neededBySlot.set(slot.index, Math.ceil((missing * expectedForSlot(baseGoal, slot.index, date)) / weightSum)),
+          );
+        }
         return {
+          missing,
+          remainingCount: remainingSlots.length,
+          neededBySlot,
           machine: m,
           baseGoal,
           dayGoal,
@@ -276,6 +291,9 @@ function TvBoard({
   const totalReal = rows.reduce((s, r) => s + r.realized, 0);
   const totalExpected = Math.round(rows.reduce((s, r) => s + r.expectedNow, 0));
   const pace = totalReal - totalExpected;
+  const totalMissing = rows.reduce((s, r) => s + r.missing, 0);
+  const sectorPerHour = rows.reduce((s, r) => s + (r.remainingCount > 0 ? r.missing / r.remainingCount : 0), 0);
+  const sectorHoursLeft = Math.max(0, ...rows.map((r) => r.remainingCount));
   const pct = totalGoal > 0 ? Math.round((totalReal / totalGoal) * 100) : 0;
   const pctTone: Tone = totalGoal > 0 ? toneFor(totalReal / totalGoal) : "neutral";
   const paceTone: Tone = totalExpected > 0 ? toneFor(totalReal / totalExpected) : "neutral";
@@ -365,13 +383,30 @@ function TvBoard({
           </div>
         </div>
 
-        <ScoreTile label="Esperado até agora" value={String(totalExpected)} sub="pela meta hora a hora" />
+        <ScoreTile
+          label="Pra bater a meta"
+          value={
+            totalGoal === 0 ? "–" : totalMissing === 0 ? "Batida ✓" : sectorHoursLeft === 0 ? `faltou ${totalMissing}` : `${Math.ceil(sectorPerHour)}/h`
+          }
+          valueClass={totalGoal > 0 && totalMissing === 0 ? "text-success" : "text-primary"}
+          sub={
+            totalGoal === 0 || totalMissing === 0
+              ? undefined
+              : sectorHoursLeft === 0
+                ? "turno encerrado"
+                : `faltam ${totalMissing} peças em ${sectorHoursLeft} ${sectorHoursLeft === 1 ? "hora" : "horas"}`
+          }
+        />
 
         <ScoreTile
           label="Ritmo"
           value={`${pace > 0 ? "+" : ""}${pace}`}
           valueClass={TONE_TEXT[paceTone]}
-          sub={totalExpected === 0 ? "aguardando início" : pace >= 0 ? "peças adiantado" : "peças atrasado"}
+          sub={
+            totalExpected === 0
+              ? "aguardando início"
+              : `${pace >= 0 ? "adiantado" : "atrasado"} · esperado ${totalExpected}`
+          }
           icon={
             totalExpected === 0 ? null : pace >= 0 ? (
               <TrendingUp className={cn("h-[4vh] w-[4vh]", TONE_TEXT[paceTone])} />
@@ -491,15 +526,37 @@ function TvBoard({
                             className={cn(
                               "flex min-h-0 flex-col items-center justify-center rounded-xl border-2 border-dashed leading-none",
                               isNow
-                                ? "animate-pulse border-primary bg-accent text-accent-foreground"
+                                ? "border-primary bg-accent text-accent-foreground"
                                 : past && inGoal && r.baseGoal > 0
                                   ? "border-destructive/40 bg-destructive/5 text-destructive/70"
                                   : "border-border bg-muted/30 text-muted-foreground/60",
                             )}
                           >
-                            <span className="text-[clamp(0.8rem,2vh,1.6rem)] font-bold">
-                              {isNow ? "…" : past && inGoal && r.baseGoal > 0 ? "!" : "–"}
-                            </span>
+                            {r.neededBySlot.has(s.index) ? (
+                              <>
+                                <span className="text-[clamp(0.5rem,1vh,0.8rem)] font-semibold uppercase tracking-wide opacity-80">
+                                  precisa
+                                </span>
+                                <span
+                                  className={cn(
+                                    "text-[clamp(1rem,2.8vh,2.4rem)] font-black tabular-nums",
+                                    r.neededBySlot.get(s.index)! > shownMeta ? "text-destructive" : "text-success",
+                                  )}
+                                >
+                                  {r.neededBySlot.get(s.index)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-[clamp(0.8rem,2vh,1.6rem)] font-bold">
+                                {r.dayGoal > 0 && r.missing === 0 && !past
+                                  ? "✓"
+                                  : isNow
+                                    ? "…"
+                                    : past && inGoal && r.baseGoal > 0
+                                      ? "!"
+                                      : "–"}
+                              </span>
+                            )}
                             {r.baseGoal > 0 && inGoal && (
                               <span className="mt-[0.3vh] text-[clamp(0.55rem,1.1vh,0.85rem)] font-semibold">
                                 meta {Math.round(expected)}
@@ -533,6 +590,11 @@ function TvBoard({
                     <div className="text-[clamp(0.55rem,1.15vh,0.9rem)] font-semibold tabular-nums text-muted-foreground">
                       {r.realized} / {r.dayGoal || "–"}
                     </div>
+                    {r.dayGoal > 0 && r.missing > 0 && r.remainingCount > 0 && (
+                      <div className="text-[clamp(0.55rem,1.2vh,0.95rem)] font-bold tabular-nums text-primary">
+                        precisa {Math.ceil(r.missing / r.remainingCount)}/h
+                      </div>
+                    )}
                   </div>
                 </Fragment>
               );
