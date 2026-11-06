@@ -31,6 +31,33 @@ const REFRESH_MS = 5000;
 const FRESH_MS = 6000;
 
 /** Nome curto pra TV: tira o nome do setor e "manual" ("Box solda manual 1" vira "Box 1"). */
+const CODI_STALE_MS = 10 * 60_000;
+
+type CodiView = { color: string; stopped: boolean; label: string | null; since: number | null };
+
+/** Cor/estado do CODI para a máquina; null quando não há vínculo ou status. */
+function codiView(st: TvData["status"][number] | undefined, nowMs: number): CodiView | null {
+  if (!st) return null;
+  const fresh = st.atualizado_em && nowMs - new Date(st.atualizado_em).getTime() < CODI_STALE_MS;
+  // Mesmas cores do Painel de Produção (corMaquina)
+  if (!fresh || st.estado == null) return { color: "#9CA3AF", stopped: false, label: "sem sinal do CODI", since: null };
+  if (st.estado === 1) return { color: "#1F9D55", stopped: false, label: null, since: null };
+  return {
+    color: st.cor_tipo_parada ? `#${st.cor_tipo_parada}` : "#9CA3AF",
+    stopped: true,
+    label: st.nome_parada?.replace(/_/g, " ") ?? "Parada",
+    since: st.estado_desde ? new Date(st.estado_desde).getTime() : null,
+  };
+}
+
+function fmtDuration(ms: number): string {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const sec = String(t % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+}
+
 function shortMachineName(name: string, areaName: string): string {
   const drop = new Set(["manual", ...areaName.toLowerCase().split(/\s+/)]);
   const kept = name.split(/\s+/).filter((w) => !drop.has(w.toLowerCase()));
@@ -484,14 +511,33 @@ function TvBoard({
               const rPct = r.dayGoal > 0 ? Math.round((r.realized / r.dayGoal) * 100) : 0;
               const rTone: Tone = r.dayGoal > 0 ? toneFor(r.realized / r.dayGoal) : "neutral";
               const rPaceUp = r.realized >= Math.round(r.expectedNow);
+              const codi = codiView(
+                data.status.find((st) => st.maquina_id === r.machine.codi_maquina_id),
+                now.getTime(),
+              );
               return (
                 <Fragment key={r.machine.id}>
-                  <div className={cn(CELL, "flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[0.8vw]")}>
-                    <div className="line-clamp-2 break-words text-[min(36cqh,17cqw)] font-extrabold leading-[1.05]">
-                      {shortMachineName(r.machine.name, data.areaName)}
-                    </div>
-                    <div className="truncate text-[min(20cqh,10cqw)] leading-tight text-muted-foreground">
-                      {r.operator || "sem operador"}
+                  <div
+                    className={cn(CELL, "flex min-w-0 items-center gap-[0.6vw] rounded-xl bg-muted/60 px-[0.8vw]")}
+                    style={
+                      codi
+                        ? { backgroundImage: `linear-gradient(90deg, ${codi.color}e6 0%, ${codi.color}8c 25%, ${codi.color}00 55%)` }
+                        : undefined
+                    }
+                    title={codi?.label ?? undefined}
+                  >
+                    {codi?.stopped && codi.since != null && (
+                      <span className="shrink-0 rounded-lg bg-card/95 px-[0.4vw] py-[4cqh] text-[min(30cqh,9cqw)] font-black leading-none tabular-nums text-foreground shadow-sm">
+                        {fmtDuration(now.getTime() - codi.since)}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <div className="line-clamp-2 break-words text-[min(36cqh,17cqw)] font-extrabold leading-[1.05]">
+                        {shortMachineName(r.machine.name, data.areaName)}
+                      </div>
+                      <div className={cn("truncate text-[min(20cqh,10cqw)] leading-tight", codi?.stopped ? "font-bold text-foreground/80" : codi ? "font-semibold text-foreground/70" : "text-muted-foreground")}>
+                        {codi?.stopped ? codi.label : r.operator || "sem operador"}
+                      </div>
                     </div>
                   </div>
 
@@ -573,13 +619,13 @@ function TvBoard({
                       <span className={cn("text-[min(42cqh,18cqw)] font-black tabular-nums", TONE_TEXT[rTone])}>
                         {r.dayGoal > 0 ? `${rPct}%` : "–"}
                       </span>
-                      <span className="flex items-center gap-1 text-[min(19cqh,9cqw)] font-semibold tabular-nums text-muted-foreground">
+                      <span className="flex items-center gap-1 text-[min(27cqh,12cqw)] font-extrabold tabular-nums text-foreground/75">
                         {r.realized}/{r.dayGoal || "–"}
                         {r.dayGoal > 0 && r.expectedNow > 0 && (
                           rPaceUp ? (
-                            <TrendingUp className="h-[18cqh] w-[18cqh] text-success" />
+                            <TrendingUp className="h-[24cqh] w-[24cqh] text-success" />
                           ) : (
-                            <TrendingDown className="h-[18cqh] w-[18cqh] text-destructive" />
+                            <TrendingDown className="h-[24cqh] w-[24cqh] text-destructive" />
                           )
                         )}
                       </span>

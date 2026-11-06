@@ -29,17 +29,23 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
       supabaseAdmin.from("areas").select("id, name").eq("id", tv.area_id).maybeSingle(),
       supabaseAdmin
         .from("machines")
-        .select("id, area_id, name, sort_order")
+        .select("*")
         .eq("area_id", tv.area_id)
         .order("sort_order"),
     ]);
     if (areaR.error) throw new Error(areaR.error.message);
     if (machinesR.error) throw new Error(machinesR.error.message);
 
-    const machines = machinesR.data ?? [];
+    const machines = (machinesR.data ?? []).map((m) => ({
+      id: m.id,
+      area_id: m.area_id,
+      name: m.name,
+      sort_order: m.sort_order,
+      codi_maquina_id: ((m as Record<string, unknown>).codi_maquina_id as number | null | undefined) ?? null,
+    }));
     const ids = machines.map((m) => m.id);
     if (!ids.length) {
-      return { build: __BUILD_ID__, tvName: tv.name, areaName: areaR.data?.name ?? "", machines, goals: [], entries: [], operators: [], overtime: false };
+      return { build: __BUILD_ID__, tvName: tv.name, areaName: areaR.data?.name ?? "", machines, goals: [], entries: [], operators: [], overtime: false, status: [] };
     }
 
     const [goalsR, entriesR, operatorsR, overtimeR] = await Promise.all([
@@ -57,6 +63,7 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
     }
 
     return {
+      status: await fetchCodiStatus(machines.map((m) => m.codi_maquina_id).filter((x): x is number => x != null)),
       build: __BUILD_ID__,
       tvName: tv.name,
       areaName: areaR.data?.name ?? "",
@@ -67,3 +74,36 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
       overtime: !!overtimeR.data?.enabled,
     };
   });
+
+export type CodiStatus = {
+  maquina_id: number;
+  estado: number | null; // 1 = produzindo, 2 = parada, null = sem sinal
+  nome_parada: string | null;
+  cor_tipo_parada: string | null; // hex sem #
+  cor_fonte: string | null;
+  estado_desde: string | null;
+  atualizado_em: string | null;
+};
+
+/**
+ * Status ao vivo do CODI (schema codi, gravado pelo codi-coletor).
+ * Nunca derruba a TV: sem vínculo, sem coluna nova ou com erro, devolve vazio.
+ */
+async function fetchCodiStatus(ids: number[]): Promise<CodiStatus[]> {
+  if (!ids.length) return [];
+  try {
+    const { data, error } = await supabaseAdmin.schema("codi" as never).from("maquinas_status" as never).select("*").in("maquina_id", ids);
+    if (error || !data) return [];
+    return (data as Record<string, unknown>[]).map((r) => ({
+      maquina_id: r.maquina_id as number,
+      estado: (r.estado as number | null) ?? null,
+      nome_parada: (r.nome_parada as string | null) ?? null,
+      cor_tipo_parada: (r.cor_tipo_parada as string | null) ?? null,
+      cor_fonte: (r.cor_fonte as string | null) ?? null,
+      estado_desde: (r.estado_desde as string | null) ?? null,
+      atualizado_em: (r.atualizado_em as string | null) ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
