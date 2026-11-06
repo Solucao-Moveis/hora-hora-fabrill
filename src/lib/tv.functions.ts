@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+declare const __BUILD_ID__: string;
+
 const inputSchema = z.object({
   token: z.string().min(8).max(128),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -37,7 +39,7 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
     const machines = machinesR.data ?? [];
     const ids = machines.map((m) => m.id);
     if (!ids.length) {
-      return { tvName: tv.name, areaName: areaR.data?.name ?? "", machines, goals: [], entries: [], operators: [], overtime: false };
+      return { build: __BUILD_ID__, tvName: tv.name, areaName: areaR.data?.name ?? "", machines, goals: [], entries: [], operators: [], overtime: false };
     }
 
     const [goalsR, entriesR, operatorsR, overtimeR] = await Promise.all([
@@ -55,6 +57,7 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
     }
 
     return {
+      build: __BUILD_ID__,
       tvName: tv.name,
       areaName: areaR.data?.name ?? "",
       machines,

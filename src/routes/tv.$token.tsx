@@ -21,8 +21,18 @@ export const Route = createFileRoute("/tv/$token")({
   component: TvPage,
 });
 
+declare const __BUILD_ID__: string;
+
 const REFRESH_MS = 5000;
 const FRESH_MS = 6000;
+
+/** Nome curto pra TV: tira o nome do setor e "manual" ("Box solda manual 1" vira "Box 1"). */
+function shortMachineName(name: string, areaName: string): string {
+  const drop = new Set(["manual", ...areaName.toLowerCase().split(/\s+/)]);
+  const kept = name.split(/\s+/).filter((w) => !drop.has(w.toLowerCase()));
+  const out = kept.join(" ").trim();
+  return out ? out.charAt(0).toUpperCase() + out.slice(1) : name;
+}
 
 type Tone = "exceed" | "ok" | "warn" | "bad" | "neutral";
 
@@ -144,6 +154,19 @@ function TvPage() {
   });
   const data = q.data;
 
+  // Saiu versão nova do app: recarrega a TV sozinha (o link continua o mesmo)
+  useEffect(() => {
+    if (!data?.build || data.build === __BUILD_ID__) return;
+    // Trava: recarrega no máximo uma vez por versão, nunca em loop
+    try {
+      if (sessionStorage.getItem("tv-reload") === data.build) return;
+      sessionStorage.setItem("tv-reload", data.build);
+    } catch {
+      return;
+    }
+    window.location.reload();
+  }, [data?.build]);
+
   // Detecta lançamentos novos/alterados para acender a célula e mostrar o aviso
   const prevRef = useRef<Map<string, number> | null>(null);
   const [fresh, setFresh] = useState<FreshEvent[]>([]);
@@ -162,7 +185,7 @@ function TvPage() {
       const [machineId, slotIdx] = key.split(":");
       events.push({
         key,
-        machine: data.machines.find((m) => m.id === machineId)?.name ?? "",
+        machine: shortMachineName(data.machines.find((m) => m.id === machineId)?.name ?? "", data.areaName),
         slot: slots.find((s) => s.index === Number(slotIdx))?.label ?? "",
         delta: qty - before,
         at: Date.now(),
@@ -425,8 +448,8 @@ function TvBoard({
               return (
                 <Fragment key={r.machine.id}>
                   <div className="flex min-w-0 flex-col justify-center rounded-xl bg-muted/60 px-[1vw]">
-                    <div className="truncate text-[clamp(0.85rem,2.2vh,1.7rem)] font-extrabold leading-tight">
-                      {r.machine.name}
+                    <div className="line-clamp-2 break-words text-[clamp(0.85rem,2.4vh,1.9rem)] font-extrabold leading-tight">
+                      {shortMachineName(r.machine.name, data.areaName)}
                     </div>
                     <div className="truncate text-[clamp(0.6rem,1.3vh,1rem)] text-muted-foreground">
                       {r.operator || "sem operador"}
