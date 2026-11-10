@@ -583,7 +583,7 @@ function TvBoard({
                               CELL,
                               "relative flex flex-col items-center justify-center rounded-xl leading-none shadow-sm transition-colors duration-700",
                               TONE_CELL[tone],
-                              isNow && "ring-4 ring-primary ring-offset-2 ring-offset-card",
+                              isNow && "ring-2 ring-primary",
                               isFresh && "tv-glow",
                             )}
                           >
