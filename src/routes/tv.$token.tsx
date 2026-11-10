@@ -59,7 +59,7 @@ function fmtDuration(ms: number): string {
 }
 
 function shortMachineName(name: string, areaName: string): string {
-  const drop = new Set(["manual", "máquina", "maquina", "a", ...areaName.toLowerCase().split(/\s+/)]);
+  const drop = new Set(["manual", "máquina", "maquina", "a", "laser",...areaName.toLowerCase().split(/\s+/)]);
   const kept = name.split(/\s+/).filter((w) => !drop.has(w.toLowerCase()));
   const out = kept.join(" ").trim();
   return out ? out.charAt(0).toUpperCase() + out.slice(1) : name;
