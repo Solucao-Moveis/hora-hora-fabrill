@@ -838,6 +838,7 @@ function SlotInput({
         "rounded-lg border p-2 transition-colors",
         isEmpty ? "border-dashed bg-muted/30" : "bg-card",
         doCodi && "codi-neon",
+        corrigida && "border-warning ring-2 ring-warning/60",
       )}
     >
       <div className="flex items-center justify-between gap-1">
@@ -849,7 +850,12 @@ function SlotInput({
             </span>
           )}
           {corrigida && (
-            <span className="rounded bg-muted px-1 text-[9px] font-bold uppercase tracking-wide">físico</span>
+            <span
+              title="Alterado manualmente pelo líder (o CODI não mexe mais nesta hora)"
+              className="rounded bg-warning px-1 text-[9px] font-bold uppercase tracking-wide text-warning-foreground"
+            >
+              manual
+            </span>
           )}
         </div>
         {!isEmpty && (
