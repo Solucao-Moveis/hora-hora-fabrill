@@ -30,7 +30,7 @@ const CELL = "[container-type:size] overflow-hidden";
 const REFRESH_MS = 5000;
 const FRESH_MS = 6000;
 
-/** Nome curto pra TV: tira o nome do setor e "manual" ("Box solda manual 1" vira "Box 1"). */
+/** Nome curto pra TV: tira o nome do setor, "manual" e "máquina a" ("Box solda manual 1" vira "Box 1"). */
 const CODI_STALE_MS = 10 * 60_000;
 
 type CodiView = { color: string; stopped: boolean; label: string | null; since: number | null };
@@ -59,7 +59,7 @@ function fmtDuration(ms: number): string {
 }
 
 function shortMachineName(name: string, areaName: string): string {
-  const drop = new Set(["manual", ...areaName.toLowerCase().split(/\s+/)]);
+  const drop = new Set(["manual", "máquina", "maquina", "a", ...areaName.toLowerCase().split(/\s+/)]);
   const kept = name.split(/\s+/).filter((w) => !drop.has(w.toLowerCase()));
   const out = kept.join(" ").trim();
   return out ? out.charAt(0).toUpperCase() + out.slice(1) : name;
