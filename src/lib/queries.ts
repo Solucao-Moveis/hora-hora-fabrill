@@ -13,7 +13,14 @@ export type PrototypeTask = {
   updated_by: string | null;
   created_at: string;
 };
-export type Machine = { id: string; area_id: string; name: string; sort_order: number };
+export type Machine = {
+  id: string;
+  area_id: string;
+  name: string;
+  sort_order: number;
+  /** Máquina no CODI (contagem automática / status). */
+  codi_maquina_id?: number | null;
+};
 export type Goal = { id: string; machine_id: string; goal_date: string; goal: number };
 export type Operator = { id: string; machine_id: string; log_date: string; operator_name: string };
 export type Entry = {
@@ -23,6 +30,10 @@ export type Entry = {
   hour_slot: number;
   quantity: number;
   observation: string | null;
+  /** 'codi' = lançado sozinho pela contagem do CODI; 'manual' = líder. */
+  origem?: "codi" | "manual";
+  /** O que o CODI contou nessa hora (pra comparar quando o líder corrigiu). */
+  qtd_codi?: number | null;
 };
 
 export async function fetchAreas(): Promise<Area[]> {

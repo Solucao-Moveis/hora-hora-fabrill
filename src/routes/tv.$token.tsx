@@ -11,7 +11,7 @@ import {
   type TimeSlot,
 } from "@/lib/time-slots";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp, WifiOff, Tv } from "lucide-react";
+import { AlertTriangle, TrendingDown, TrendingUp, WifiOff, Tv } from "lucide-react";
 import logo from "@/assets/logo-solucao-moveis.png";
 
 // TV de chão de fábrica: abre sem login (token no link), tela cheia, sem botões.
@@ -399,6 +399,24 @@ function TvBoard({
           </div>
         </div>
       </header>
+
+      {/* ======== CONTAGEM DO CODI PARADA ======== */}
+      {data.contagem.parado && (
+        <div
+          role="alert"
+          className="flex shrink-0 items-center gap-[1vw] rounded-2xl border-2 border-destructive bg-destructive px-[1.6vw] py-[1vh] text-[clamp(0.9rem,2.2vh,1.8rem)] font-bold text-destructive-foreground shadow-sm"
+        >
+          <AlertTriangle className="h-[3vh] w-[3vh] shrink-0 animate-pulse" />
+          <span className="min-w-0 truncate">
+            Contagem automática parada
+            {data.contagem.desde
+              ? ` desde ${new Date(data.contagem.desde).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+              : ""}
+            {data.contagem.maquinas.length ? ` (${data.contagem.maquinas.map((n) => shortMachineName(n, data.areaName)).join(", ")})` : ""}
+            . Líder: lançar manual no Hora a Hora.
+          </span>
+        </div>
+      )}
 
       {/* ======== PLACAR ======== */}
       <section className="grid shrink-0 grid-cols-4 gap-[1.2vh]">

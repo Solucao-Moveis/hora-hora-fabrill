@@ -4,6 +4,9 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Target, ClipboardList, BarChart3, Users, AlertTriangle, Home, Tv } from "lucide-react";
 import { AppShell, type NavItem } from "@/components/AppShell";
+import { useQuery } from "@tanstack/react-query";
+import { ContagemAviso } from "@/components/app/ContagemAviso";
+import { fetchContagemStatus } from "@/lib/contagem.functions";
 import logo from "@/assets/logo-solucao-moveis.png";
 
 // SMERP: hub central (para o botão "Voltar ao ERP")
@@ -25,6 +28,15 @@ function AppLayout() {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
+
+  // PCP: contagem automática do CODI parada há mais de 15 min (o líder já vê na hora)
+  const contagemQ = useQuery({
+    queryKey: ["contagem", "todas"],
+    queryFn: () => fetchContagemStatus({ data: {} }),
+    enabled: !!user && fullAccess,
+    refetchInterval: 60_000,
+  });
+  const contagemPcp = contagemQ.data && contagemQ.data.minutos >= 15 ? contagemQ.data : undefined;
 
   if (loading || !user) {
     return (
@@ -91,6 +103,7 @@ function AppLayout() {
       user={user}
       erpUrl={ERP_URL}
     >
+      {fullAccess && <ContagemAviso status={contagemPcp} className="mb-4" />}
       <Outlet />
     </AppShell>
   );

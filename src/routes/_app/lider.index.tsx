@@ -44,6 +44,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CollaboratorMultiSelect } from "@/components/app/CollaboratorMultiSelect";
+import { ContagemAviso } from "@/components/app/ContagemAviso";
+import { fetchContagemStatus } from "@/lib/contagem.functions";
 import type { AreaRef } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/_app/lider/")({
@@ -77,6 +79,18 @@ function LiderPage() {
     queryKey: ["entries", date, machineIds],
     queryFn: () => fetchEntriesForDate(date, machineIds),
     enabled: machineIds.length > 0,
+    // Horas da contagem automática do CODI chegam sozinhas
+    refetchInterval: 30_000,
+  });
+  const codiIds = useMemo(
+    () => (machinesQ.data ?? []).map((m) => m.codi_maquina_id).filter((x): x is number => x != null),
+    [machinesQ.data],
+  );
+  const contagemQ = useQuery({
+    queryKey: ["contagem", codiIds],
+    queryFn: () => fetchContagemStatus({ data: { codiIds } }),
+    enabled: codiIds.length > 0,
+    refetchInterval: 30_000,
   });
   const justifQ = useQuery({
     queryKey: ["justifications", date, machineIds],
@@ -129,6 +143,8 @@ function LiderPage() {
         </div>
         <DatePicker value={date} onChange={setDate} />
       </div>
+
+      {date === todayIso() && <ContagemAviso status={contagemQ.data} />}
 
       <CollaboratorsCard
         areas={areas}
@@ -611,7 +627,13 @@ function MachineCard({
   collaboratorOptions: string[];
   operators: string[];
   takenByOther: string[];
-  entries: { hour_slot: number; quantity: number; observation: string | null }[];
+  entries: {
+    hour_slot: number;
+    quantity: number;
+    observation: string | null;
+    origem?: "codi" | "manual";
+    qtd_codi?: number | null;
+  }[];
   justification: string;
   onChanged: () => void;
 }) {
@@ -708,6 +730,8 @@ function MachineCard({
                 slot={slot.label}
                 quantity={e?.quantity ?? null}
                 observation={e?.observation ?? ""}
+                origem={e?.origem}
+                qtdCodi={e?.qtd_codi ?? null}
                 onSave={async (q, obs) => {
                   try {
                     await upsertEntry(machine.id, date, slot.index, q, obs.trim() || null, userId);
@@ -760,12 +784,16 @@ function SlotInput({
   slot,
   quantity,
   observation,
+  origem,
+  qtdCodi,
   onSave,
   onDelete,
 }: {
   slot: string;
   quantity: number | null;
   observation: string;
+  origem?: "codi" | "manual";
+  qtdCodi: number | null;
   onSave: (q: number, obs: string) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
@@ -800,19 +828,34 @@ function SlotInput({
   };
 
   const isEmpty = quantity == null;
+  // Hora lançada sozinha pela contagem do CODI: borda neon azul
+  const doCodi = !isEmpty && origem === "codi";
+  // Líder corrigiu com o número físico: mostra o do CODI pra comparar/voltar
+  const corrigida = !isEmpty && origem === "manual" && qtdCodi != null && qtdCodi !== quantity;
   return (
     <div
       className={cn(
         "rounded-lg border p-2 transition-colors",
         isEmpty ? "border-dashed bg-muted/30" : "bg-card",
+        doCodi && "codi-neon",
       )}
     >
       <div className="flex items-center justify-between gap-1">
-        <div className="text-[11px] font-semibold text-muted-foreground">{slot}</div>
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+          {slot}
+          {doCodi && (
+            <span className="rounded bg-codi/15 px-1 text-[9px] font-bold uppercase tracking-wide text-codi">
+              {(quantity ?? 0) < 0 ? "estorno" : "CODI"}
+            </span>
+          )}
+          {corrigida && (
+            <span className="rounded bg-muted px-1 text-[9px] font-bold uppercase tracking-wide">físico</span>
+          )}
+        </div>
         {!isEmpty && (
           <button
             type="button"
-            title="Limpar apontamento (volta pro —)"
+            title={doCodi ? "Limpar (a contagem do CODI preenche de novo em até 1 min)" : "Limpar apontamento (volta pro —)"}
             onClick={limpar}
             disabled={limpando}
             className="rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
@@ -838,6 +881,16 @@ function SlotInput({
         placeholder="obs."
         className="mt-1 h-7 text-[11px]"
       />
+      {corrigida && (
+        <button
+          type="button"
+          title="Voltar a usar o número do CODI nesta hora"
+          onClick={() => onSave(qtdCodi, obs)}
+          className="mt-1 w-full rounded border border-codi/40 px-1 py-0.5 text-[10px] font-semibold text-codi transition-colors hover:bg-codi/10"
+        >
+          CODI: {qtdCodi} · usar
+        </button>
+      )}
     </div>
   );
 }

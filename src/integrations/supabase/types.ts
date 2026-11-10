@@ -322,6 +322,8 @@ export type Database = {
           id: string
           machine_id: string
           observation: string | null
+          origem: string
+          qtd_codi: number | null
           quantity: number
           updated_at: string
         }
@@ -332,6 +334,8 @@ export type Database = {
           id?: string
           machine_id: string
           observation?: string | null
+          origem?: string
+          qtd_codi?: number | null
           quantity?: number
           updated_at?: string
         }
@@ -342,6 +346,8 @@ export type Database = {
           id?: string
           machine_id?: string
           observation?: string | null
+          origem?: string
+          qtd_codi?: number | null
           quantity?: number
           updated_at?: string
         }

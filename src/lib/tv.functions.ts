@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { lerContagemStatus } from "@/lib/contagem.server";
 
 declare const __BUILD_ID__: string;
 
@@ -44,8 +45,9 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
       codi_maquina_id: ((m as Record<string, unknown>).codi_maquina_id as number | null | undefined) ?? null,
     }));
     const ids = machines.map((m) => m.id);
+    const codiIds = machines.map((m) => m.codi_maquina_id).filter((x): x is number => x != null);
     if (!ids.length) {
-      return { build: __BUILD_ID__, tvName: tv.name, areaName: areaR.data?.name ?? "", machines, goals: [], entries: [], operators: [], overtime: false, status: [] };
+      return { build: __BUILD_ID__, tvName: tv.name, areaName: areaR.data?.name ?? "", machines, goals: [], entries: [], operators: [], overtime: false, status: [], contagem: await lerContagemStatus([]) };
     }
 
     const [goalsR, entriesR, operatorsR, overtimeR] = await Promise.all([
@@ -62,8 +64,11 @@ export const fetchTvScreen = createServerFn({ method: "POST" })
       if (r.error) throw new Error(r.error.message);
     }
 
+    const [status, contagem] = await Promise.all([fetchCodiStatus(codiIds), lerContagemStatus(codiIds)]);
     return {
-      status: await fetchCodiStatus(machines.map((m) => m.codi_maquina_id).filter((x): x is number => x != null)),
+      status,
+      // Contagem automática do CODI (só setores que estão nela) parada → faixa na TV
+      contagem,
       build: __BUILD_ID__,
       tvName: tv.name,
       areaName: areaR.data?.name ?? "",

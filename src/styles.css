@@ -45,6 +45,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-codi: var(--codi);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-caution: var(--caution);
@@ -91,6 +92,8 @@
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.62 0.18 150);
   --success-foreground: oklch(0.99 0 0);
+  /* Azul neon: hora lançada sozinha pela contagem do CODI */
+  --codi: oklch(0.62 0.2 245);
   --warning: oklch(0.78 0.16 75);
   --warning-foreground: oklch(0.20 0.05 70);
   --caution: oklch(0.72 0.18 55);
@@ -135,6 +138,7 @@
   --destructive-foreground: oklch(0.98 0 0);
   --success: oklch(0.66 0.15 150);
   --success-foreground: oklch(0.16 0.02 274);
+  --codi: oklch(0.72 0.17 240);
   --warning: oklch(0.80 0.14 75);
   --warning-foreground: oklch(0.18 0.03 75);
   --caution: oklch(0.80 0.14 75);
@@ -179,4 +183,13 @@
 }
 .tv-glow {
   animation: tv-glow 1.4s ease-out 3;
+}
+
+/* Apontamento do líder: hora que veio da contagem do CODI (borda neon azul) */
+.codi-neon {
+  border-color: var(--codi);
+  box-shadow:
+    0 0 0 1px var(--codi),
+    0 0 10px color-mix(in oklch, var(--codi) 55%, transparent),
+    inset 0 0 6px color-mix(in oklch, var(--codi) 18%, transparent);
 }
